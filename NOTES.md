@@ -27,6 +27,10 @@
 - `/admin` (admins only): list of users with Make admin / Remove admin, using the built-in `setRole` (server refuses non-admins). App owner is always admin.
 - Files: `src/pages/(app)/(protected)/admin.tsx`, `src/nav.ts`
 
+### First deploy (Claude Code)
+- Live at https://calvin-poker-bank.app.space (app id `app_01M851DYCPBNT1ZYV7FGWMKDDB`).
+- Source latched permanently to **GitHub** (`calvin-115/calvin-poker-bank`) because the checkout had that `origin` remote. Deploys ship the local working tree; DeepSpace `push`/`workspace` commands won't work for this app.
+
 ## What I verified / changed
 
 ## Next steps

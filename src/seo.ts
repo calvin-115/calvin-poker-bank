@@ -26,12 +26,13 @@ declare const __DEEPSPACE_SITE_ORIGIN__: string | undefined
 
 export const seo = {
   title: APP_NAME,
-  description: `${APP_NAME} is a real-time collaborative app.`,
+  description: `${APP_NAME} tracks buy-ins, cash-outs and settle-ups for a private poker home game.`,
   /** Public origin for canonical URLs, og:url, and the sitemap — no trailing
    *  slash. Replace with the custom domain once one is attached, e.g.
    *  'https://www.example.com'. */
   origin: typeof __DEEPSPACE_SITE_ORIGIN__ === 'string' ? __DEEPSPACE_SITE_ORIGIN__ : 'http://localhost',
   /** 1200×630 preview image, root-relative to public/ (e.g. '/og.png'). */
   // ogImage: '/og.png',
-  noindex: false,
+  // A private friends' game: keep it out of search results.
+  noindex: true,
 }

@@ -147,7 +147,7 @@ function ProfileSection() {
             onChange={changePicture}
           />
           {mine?.data.avatarUrl && (
-            <Button variant="ghost" size="sm" onClick={() => save({ avatarUrl: '' })}>
+            <Button variant="ghost" size="sm" disabled={!ready} onClick={() => save({ avatarUrl: '' })}>
               Use account picture
             </Button>
           )}

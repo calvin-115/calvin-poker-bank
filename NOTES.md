@@ -190,6 +190,17 @@
 - Added `README.md` for reviewers: what the app does (night flow), how it uses DeepSpace (auth/roles, RBAC collections, server actions, file storage, prerendered landing, agent tools), why no optional integrations are installed, the main tradeoff (manual host approval rather than payment verification), data model and write rules, key files, commands, known gaps and next steps.
 - Files: `README.md` (new)
 
+### Audit against the DeepSpace skill + live checks (Claude Code)
+- Loaded the DeepSpace agent skill (it hadn't been used earlier in the project) and checked the app against its rules and operating sequence:
+  - **Matches:** GitHub source with commit-before-deploy and no `deepspace push`; SDK current (`app update`: aligned 0.44.2, no migrations); supported Node/npm; standard layout; `users` schema kept; agent tools registered once; data hooks only inside `(app)/`; identity only from the verified JWT; confirmed writes where something depends on acceptance; no secrets; UI primitives from `src/components/ui`; scaffold theme replaced.
+  - **Add-on catalog** (`deepspace add --list/--info`): `leaderboard` stores submitted, admin-edited scores, while ours is derived from closed games, so it would duplicate and drift. `admin-page` uses the same `useUsers`/`setRole` built-ins as ours. `landing` is generic; ours shows the real table component.
+  - **Production:** `deepspace logs`: 0 errors and 0 warnings in 7 days; `hostGame`/`joinGame` calls succeeding. `deepspace releases`: 9 releases, all rollback-able.
+  - **Live data** via the app's agent tools (`agent invoke … records_query`, run as the owner/admin, read-only): 6 games, none missing a code, every host seated, every seated player listed on their code, no orphan seats, the one miscounted game has its method saved. 4 old closed games still hold their legacy code on the game record. `secureJoinCodes` has never been run in production (no log entries).
+  - **Not checkable with agent tools:** member-level permission denials, since the CLI session is the owner, who is always admin. These are covered by the two-account e2e tests and manual multi-account testing.
+- Fixed the one rule difference: three write buttons weren't disabled until `useMutations().ready` (Cancel/Dismiss on a buy-in request, Use account picture).
+- Kept: the scaffold's admin-only `settings` collection (unused, harmless).
+- Files: `src/pages/(app)/(protected)/games/[id].tsx`, `src/pages/(app)/(protected)/settings.tsx`
+
 ## What I verified / changed
 
 ## Next steps

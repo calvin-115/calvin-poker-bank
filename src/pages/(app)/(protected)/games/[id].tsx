@@ -474,7 +474,7 @@ function RequestBuyin({
                       Pay host
                     </Button>
                   )}
-                  <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => onRemove(r.recordId)}>
+                  <Button size="sm" variant="ghost" className="h-7 text-xs" disabled={disabled} onClick={() => onRemove(r.recordId)}>
                     {declined ? 'Dismiss' : 'Cancel'}
                   </Button>
                 </span>

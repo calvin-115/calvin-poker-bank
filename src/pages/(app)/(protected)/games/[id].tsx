@@ -1,15 +1,24 @@
 import { useEffect, useState, type CSSProperties, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { getUserColor, useAuth, useMutations, useQuery, useUser, useUserLookup, type RecordData } from 'deepspace'
-import { ArrowRight, Check, ChevronLeft, Coins, Crown } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Check, ChevronLeft, Coins, Crown } from 'lucide-react'
 import { AnimatedCents } from '@/components/AnimatedCents'
 import { GameStatusBadge } from '@/components/GameStatusBadge'
 import { PokerTable, type TableSeat } from '@/components/PokerTable'
 import { Avatar, AvatarFallback, AvatarImage, Button, Input, useToast } from '@/components/ui'
 import { cn } from '@/lib/utils'
-import { formatCents, ledgerSummary, parseDollars, playerTotals, settle, type PlayerTotal } from '@/lib/poker'
+import {
+  finalTotals,
+  formatCents,
+  ledgerSummary,
+  parseDollars,
+  playerTotals,
+  settledTotals,
+  type FinalTotal,
+  type PlayerTotal,
+} from '@/lib/poker'
 import type { BuyinRequest } from '@/schemas/buyin-requests-schema'
-import type { Entry, EntryType, Game } from '@/schemas/games-schema'
+import { MISCOUNT_METHODS, type Entry, type EntryType, type Game, type MiscountMethod } from '@/schemas/games-schema'
 import type { Player } from '@/schemas/players-schema'
 
 export default function GamePage() {
@@ -23,6 +32,7 @@ export default function GamePage() {
   const { records: requests } = useQuery<BuyinRequest>('buyinRequests', { where: { gameId: id } })
   const requestMutations = useMutations<BuyinRequest>('buyinRequests')
   const { error } = useToast()
+  const [chosenMethod, setChosenMethod] = useState<MiscountMethod>()
 
   const game = games.find((g) => g.recordId === id)
 
@@ -57,7 +67,16 @@ export default function GamePage() {
   const myRequests = unapproved.filter((r) => r.data.userId === userId)
   const paidPayments = new Set(game.data.paidPayments ?? [])
 
-  const seats: TableSeat[] = totals.map((t) => ({
+  // Open games preview the host's pick. Closed games settle exactly as the leaderboard does.
+  const final = isOpen
+    ? finalTotals(totals, game.createdBy, chosenMethod)
+    : settledTotals(totals, game.createdBy, game.data.miscountMethod)
+  // Null while the count is off and nothing is picked yet: show the count as entered.
+  const shown: FinalTotal[] = final ?? totals.map((t) => ({ ...t, adjustmentCents: 0, payoutCents: t.cashoutCents ?? 0 }))
+  const countIsOff = summary.allCashedOut && summary.differenceCents !== 0
+  const canCloseNow = summary.allCashedOut && final !== null
+
+  const seats: TableSeat[] = shown.map((t) => ({
     playerId: t.playerId,
     name: getName(t.playerId) ?? 'Unknown',
     color: getUserColor(t.playerId),
@@ -67,7 +86,7 @@ export default function GamePage() {
     isYou: t.playerId === userId,
     buyinCents: t.buyinCents,
   }))
-  const winner = [...totals].sort((a, b) => b.netCents - a.netCents)[0]
+  const winner = [...shown].sort((a, b) => b.netCents - a.netCents)[0]
 
   function saveEntries(next: Entry[]) {
     put(game!.recordId, { entries: next })
@@ -108,8 +127,17 @@ export default function GamePage() {
     }
   }
 
-  function setStatus(next: Game['status']) {
-    put(game!.recordId, next === 'closed' ? { status: next, closedAt: new Date().toISOString() } : { status: next })
+  function closeGame() {
+    put(game!.recordId, {
+      status: 'closed',
+      closedAt: new Date().toISOString(),
+      ...(countIsOff ? { miscountMethod: chosenMethod } : {}),
+    })
+  }
+
+  function reopenGame() {
+    setChosenMethod(undefined)
+    put(game!.recordId, { status: 'open' })
   }
 
   return (
@@ -179,28 +207,58 @@ export default function GamePage() {
                 <dd className="mt-0.5 font-display text-xl font-bold">{totals.length}</dd>
               </div>
             </dl>
-            <MismatchBanner summary={summary} nameOf={nameOf} hasCashouts={totals.some((t) => t.cashoutCents !== null)} />
+            {!canManage && isOpen && (
+              <MismatchBanner summary={summary} nameOf={nameOf} hasCashouts={totals.some((t) => t.cashoutCents !== null)} />
+            )}
+            {canManage && isOpen && summary.waitingOn.length > 0 && totals.some((t) => t.cashoutCents !== null) && (
+              <p className="mt-4 rounded-xl border border-border bg-muted px-3 py-2.5 text-sm">
+                Waiting on cash-outs from {summary.waitingOn.map(nameOf).join(', ')}.
+              </p>
+            )}
+            {!isOpen && game.data.miscountMethod && summary.differenceCents !== 0 && (
+              <p className="mt-4 text-xs text-muted-foreground">
+                Count was {formatCents(Math.abs(summary.differenceCents))} {summary.differenceCents > 0 ? 'over' : 'short'} ·{' '}
+                {METHOD_COPY[game.data.miscountMethod].label.toLowerCase()}
+              </p>
+            )}
             {canManage && (
               <div className="mt-4 grid gap-2">
                 {isOpen ? (
-                  <Button onClick={() => setStatus('closed')} disabled={!summary.canClose} className="w-full">
+                  <Button onClick={closeGame} disabled={!canCloseNow} className="w-full">
                     Close game
                   </Button>
                 ) : (
-                  <Button variant="secondary" onClick={() => setStatus('open')} className="w-full">
+                  <Button variant="secondary" onClick={reopenGame} className="w-full">
                     Reopen game
                   </Button>
                 )}
-                {isOpen && !summary.canClose && (
-                  <span className="text-xs text-muted-foreground">Closing needs every cash-out entered and the totals to match.</span>
+                {isOpen && !canCloseNow && (
+                  <span className="text-xs text-muted-foreground">
+                    {summary.allCashedOut
+                      ? 'Pick how to settle the miscount below, or fix the cash-outs.'
+                      : 'Closing needs every cash-out entered.'}
+                  </span>
                 )}
               </div>
             )}
           </section>
 
-          {(summary.canClose || !isOpen) && (
-            <Settlement
+          {canManage && isOpen && countIsOff && (
+            <MiscountPanel
               totals={totals}
+              hostId={game.createdBy}
+              differenceCents={summary.differenceCents}
+              potCents={summary.totalInCents}
+              chosen={chosenMethod}
+              onChoose={setChosenMethod}
+              nameOf={nameOf}
+            />
+          )}
+
+          {final && (summary.allCashedOut || !isOpen) && (
+            <Payouts
+              shown={shown}
+              hostId={game.createdBy}
               nameOf={nameOf}
               closed={!isOpen}
               paid={paidPayments}
@@ -213,7 +271,7 @@ export default function GamePage() {
           <section>
             <h2 className="mb-2 font-mono text-xs font-medium uppercase tracking-widest text-muted-foreground">Players</h2>
             <ul data-testid="player-list" className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
-              {totals.map((t) => (
+              {shown.map((t) => (
                 <PlayerRow
                   key={t.playerId}
                   total={t}
@@ -399,7 +457,7 @@ function PlayerRow({
   canEdit,
   onAdd,
 }: {
-  total: PlayerTotal
+  total: FinalTotal
   name: string
   imageUrl: string | undefined
   isHostRow: boolean
@@ -437,6 +495,9 @@ function PlayerRow({
           </p>
           <p className="text-xs text-muted-foreground">
             In {formatCents(total.buyinCents)} · Out {total.cashoutCents === null ? '—' : formatCents(total.cashoutCents)}
+            {total.adjustmentCents !== 0 && (
+              <span className="text-primary"> · count adjustment {formatCents(total.adjustmentCents, { signed: true })}</span>
+            )}
           </p>
         </div>
         <p
@@ -501,50 +562,148 @@ function MismatchBanner({
     const direction = summary.differenceCents > 0 ? 'more' : 'less'
     return (
       <p data-testid="mismatch" className="mt-4 rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
-        Cash-outs don't match buy-ins: {formatCents(Math.abs(summary.differenceCents))} {direction} in chips than was bought in. Recount the stacks.
+        Cash-outs don't match buy-ins: {formatCents(Math.abs(summary.differenceCents))} {direction} in chips than was bought in. The host
+        will recount or choose how to settle it.
       </p>
     )
   }
   return null
 }
 
-function Settlement({
+const METHOD_COPY: Record<MiscountMethod, { label: string; body: string }> = {
+  'winners-proportional': { label: 'Winners split it by winnings', body: 'Bigger winners absorb more of it.' },
+  'winners-equal': { label: 'Winners split it evenly', body: 'Every winner absorbs the same amount.' },
+  'host-covers': { label: 'Host covers it', body: 'The bank absorbs it. Nobody else changes.' },
+}
+
+// Above this share of the pot, a miscount is more likely a counting mistake than a lost chip.
+const BIG_MISS_SHARE = 0.1
+
+function MiscountPanel({
   totals,
+  hostId,
+  differenceCents,
+  potCents,
+  chosen,
+  onChoose,
+  nameOf,
+}: {
+  totals: PlayerTotal[]
+  hostId: string
+  differenceCents: number
+  potCents: number
+  chosen: MiscountMethod | undefined
+  onChoose: (method: MiscountMethod) => void
+  nameOf: (id: string) => string
+}) {
+  const over = differenceCents > 0
+  const amount = formatCents(Math.abs(differenceCents))
+  const hasWinners = totals.some((t) => t.netCents > 0)
+
+  return (
+    <section data-testid="miscount" className="rounded-2xl border border-primary/50 bg-card p-4">
+      <h2 className="font-display text-lg font-bold">The count is {amount} {over ? 'over' : 'short'}</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        {over
+          ? `Cash-outs add up to ${amount} more than was bought in, so the bank is short.`
+          : `Cash-outs add up to ${amount} less than was bought in, so there's money left over.`}{' '}
+        Losers already paid, so their amounts stay the same.
+      </p>
+      {Math.abs(differenceCents) > potCents * BIG_MISS_SHARE && (
+        <p className="mt-3 flex gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
+          That's more than 10% of the pot. Recount the stacks before closing?
+        </p>
+      )}
+
+      <fieldset className="mt-3 grid gap-2">
+        <legend className="sr-only">How to settle the miscount</legend>
+        {MISCOUNT_METHODS.map((m) => {
+          const preview = finalTotals(totals, hostId, m)
+          const changed = preview?.filter((t) => t.adjustmentCents !== 0) ?? []
+          return (
+            <label
+              key={m}
+              className={cn(
+                'flex gap-3 rounded-xl border p-3 text-sm transition-colors',
+                preview ? 'cursor-pointer hover:border-primary/50' : 'cursor-not-allowed opacity-50',
+                chosen === m ? 'border-primary bg-primary/10' : 'border-border',
+              )}
+            >
+              <input
+                type="radio"
+                name="miscount-method"
+                value={m}
+                checked={chosen === m}
+                disabled={!preview}
+                onChange={() => onChoose(m)}
+                className="mt-1 accent-[var(--color-primary)]"
+              />
+              <span className="min-w-0">
+                <span className="block font-medium">{METHOD_COPY[m].label}</span>
+                <span className="block text-xs text-muted-foreground">
+                  {preview
+                    ? METHOD_COPY[m].body
+                    : m === 'host-covers'
+                      ? "Not possible: the host isn't seated in this game."
+                      : hasWinners
+                        ? 'Not possible: a winner would end up below even.'
+                        : 'Not possible: nobody finished up.'}
+                </span>
+                {changed.length > 0 && (
+                  <span className="mt-1 block text-xs">
+                    {changed.map((t) => `${nameOf(t.playerId)} ${formatCents(t.adjustmentCents, { signed: true })}`).join(' · ')}
+                  </span>
+                )}
+              </span>
+            </label>
+          )
+        })}
+      </fieldset>
+    </section>
+  )
+}
+
+/** Players paid the host up front, so settling up is the host paying out each player's chips. */
+function Payouts({
+  shown,
+  hostId,
   nameOf,
   closed,
   paid,
   onTogglePaid,
 }: {
-  totals: PlayerTotal[]
+  shown: FinalTotal[]
+  hostId: string
   nameOf: (id: string) => string
   closed: boolean
   paid: Set<string>
   /** Only the host gets this, and only once the game is closed. */
   onTogglePaid?: (key: string) => void
 }) {
-  const payments = settle(totals)
+  const payouts = shown.filter((t) => t.playerId !== hostId && t.payoutCents > 0)
   return (
     <section className="rounded-2xl border border-border bg-card p-4">
       <h2 className="font-mono text-xs font-medium uppercase tracking-widest text-muted-foreground">
-        {closed ? 'Settle up' : 'Settle up (preview)'}
+        {closed ? 'Payouts' : 'Payouts (preview)'}
       </h2>
-      {payments.length === 0 ? (
-        <p className="mt-2 text-sm text-muted-foreground">Everyone broke even. Nothing to pay.</p>
+      {payouts.length === 0 ? (
+        <p className="mt-2 text-sm text-muted-foreground">Nobody else has chips to cash in.</p>
       ) : (
         <ul data-testid="settlement" className="mt-2 divide-y divide-border">
-          {payments.map((p) => {
-            const key = `${p.from}:${p.to}`
+          {payouts.map((p) => {
+            const key = p.playerId
             const isPaid = paid.has(key)
             return (
               <li key={key} className={cn('flex items-center justify-between gap-3 py-2.5 text-sm', isPaid && 'opacity-60')}>
                 <span className="flex min-w-0 items-center gap-2">
-                  <span className="truncate font-medium">{nameOf(p.from)}</span>
+                  <span className="truncate font-medium">{nameOf(hostId)}</span>
                   <ArrowRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
                   <span className="sr-only">pays</span>
-                  <span className="truncate font-medium">{nameOf(p.to)}</span>
+                  <span className="truncate font-medium">{nameOf(p.playerId)}</span>
                 </span>
                 <span className="flex shrink-0 items-center gap-2">
-                  <span className={cn('font-display text-base font-bold', isPaid && 'line-through')}>{formatCents(p.amountCents)}</span>
+                  <span className={cn('font-display text-base font-bold', isPaid && 'line-through')}>{formatCents(p.payoutCents)}</span>
                   {onTogglePaid ? (
                     <Button
                       size="sm"

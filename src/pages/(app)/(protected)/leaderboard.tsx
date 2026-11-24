@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom'
-import { getUserColor, useAuth, useQuery, useUserLookup } from 'deepspace'
+import { getUserColor, useAuth, useQuery, useUserLookup, type RecordData } from 'deepspace'
 import { Crown } from 'lucide-react'
 import { AnimatedCents } from '@/components/AnimatedCents'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui'
 import { cn } from '@/lib/utils'
-import { formatCents, lifetimePnl, playerTotals, type LifetimeRow } from '@/lib/poker'
+import { closedGameTotals, formatCents, lifetimePnl, type ClosedGame, type LifetimeRow } from '@/lib/poker'
 import { playerNights, playerStats, type PlayerStats, type Result } from '@/lib/stats'
 import type { Game } from '@/schemas/games-schema'
 
@@ -18,12 +18,20 @@ export default function LeaderboardPage() {
 
   // Only closed games count: open games are still in play.
   const games = [...records].sort((a, b) => (b.data.closedAt ?? '').localeCompare(a.data.closedAt ?? ''))
-  const oldestFirst = [...games].reverse().map((g) => g.data)
-  const rows = lifetimePnl(games.map((g) => g.data))
+  const closedOf = (g: RecordData<Game>): ClosedGame => ({
+    entries: g.data.entries,
+    hostId: g.createdBy,
+    miscountMethod: g.data.miscountMethod,
+  })
+  const oldestFirst = [...games].reverse().map(closedOf)
+  const rows = lifetimePnl(games.map(closedOf))
   const statsOf = (playerId: string) => playerStats(playerNights(oldestFirst, playerId))
   const me = rows.find((r) => r.playerId === userId)
   const myStats = userId ? statsOf(userId) : undefined
-  const myGames = games.filter((g) => g.data.entries.some((e) => e.playerId === userId))
+  const myGames = games.flatMap((g) => {
+    const mine = closedGameTotals(closedOf(g)).find((t) => t.playerId === userId)
+    return mine ? [{ game: g, netCents: mine.netCents }] : []
+  })
   const nameOf = (playerId: string) => getName(playerId) ?? 'Unknown'
 
   return (
@@ -60,8 +68,7 @@ export default function LeaderboardPage() {
 
           {myGames.length > 0 && (
             <ul className="divide-y divide-border border-t border-border text-sm">
-              {myGames.map((g) => {
-                const net = playerTotals([userId!], g.data.entries)[0].netCents
+              {myGames.map(({ game: g, netCents: net }) => {
                 return (
                   <li key={g.recordId}>
                     <Link to={`/games/${g.recordId}`} className="flex items-center justify-between gap-3 py-2.5 hover:text-primary">

@@ -81,7 +81,7 @@ const FEATURES = [
     id: 'settle',
     icon: HandCoins,
     title: 'Settle up',
-    body: "Totals have to balance before the host can close. Then a recap crowns the night's winner and lists who's owed what.",
+    body: "Lost a chip? The host picks who absorbs the miss: the winners or the bank. Then a recap crowns the night's winner and lists every payout.",
   },
   {
     id: 'leaderboard',
@@ -361,12 +361,12 @@ function SettlePreview() {
       </div>
       <ul className="divide-y divide-border rounded-2xl border border-border bg-background/50 px-4 text-sm">
         {[
-          { from: 'Dev', to: 'Ben', amount: '$40', paid: true },
-          { from: 'Ava', to: 'Ben', amount: '$45', paid: false },
+          { to: 'Ben', amount: '$145', paid: true },
+          { to: 'Cleo', amount: '$60', paid: false },
         ].map((p) => (
-          <li key={p.from} className={cn('flex items-center justify-between gap-3 py-3', p.paid && 'opacity-60')}>
+          <li key={p.to} className={cn('flex items-center justify-between gap-3 py-3', p.paid && 'opacity-60')}>
             <span className="flex items-center gap-2 font-medium">
-              {p.from}
+              Host
               <ArrowRight className="size-4 text-muted-foreground" aria-hidden />
               {p.to}
             </span>

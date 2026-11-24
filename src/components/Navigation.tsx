@@ -54,7 +54,7 @@ export default function Navigation() {
     <>
       <nav data-testid="app-navigation" className="border-b border-border">
         <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4">
-          <Link to="/home" className="flex items-center gap-2 font-display text-base font-bold text-foreground">
+          <Link to="/" className="flex items-center gap-2 font-display text-base font-bold text-foreground">
             <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <Coins className="size-4" aria-hidden />
             </span>

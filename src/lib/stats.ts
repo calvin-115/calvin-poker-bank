@@ -1,5 +1,4 @@
-import type { Entry } from '@/schemas/games-schema'
-import { playerTotals } from './poker'
+import { closedGameTotals, type ClosedGame } from './poker'
 
 export type Result = 'up' | 'down' | 'even'
 
@@ -14,13 +13,11 @@ export type PlayerStats = {
 }
 
 /**
- * A player's net for each game they played, in the order given (pass games
- * oldest first). "Played" matches lifetimePnl: they have at least one entry.
+ * A player's final net for each game they were part of, in the order given
+ * (pass games oldest first), with any miscount share applied.
  */
-export function playerNights(games: { entries: Entry[] }[], playerId: string): number[] {
-  return games
-    .filter((g) => g.entries.some((e) => e.playerId === playerId))
-    .map((g) => playerTotals([playerId], g.entries)[0].netCents)
+export function playerNights(games: ClosedGame[], playerId: string): number[] {
+  return games.flatMap((g) => closedGameTotals(g).filter((t) => t.playerId === playerId).map((t) => t.netCents))
 }
 
 export function resultOf(netCents: number): Result {

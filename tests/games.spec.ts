@@ -96,6 +96,42 @@ test('player requests buy-ins; host approves one and declines one', async ({ use
   await expect(player.page.getByTestId('my-requests').getByRole('listitem')).toHaveCount(1)
 })
 
+test('host settles a miscount by covering it; the player is paid their full chips', async ({ users }) => {
+  const usableTestAccounts = loadAllTestAccounts().length
+  test.skip(usableTestAccounts < 2, `Needs 2 usable test accounts, found ${usableTestAccounts}.`)
+  const [host, player] = await users(2)
+
+  await host.page.goto('/games')
+  await host.page.getByLabel('Game name').fill(`Miscount test ${Date.now()}`)
+  await host.page.getByRole('button', { name: 'Create game' }).click()
+  const code = (await host.page.getByTestId('game-code').textContent({ timeout: 15_000 }))!.trim()
+
+  await player.page.goto('/games')
+  await player.page.getByLabel('Game code').fill(code)
+  await player.page.getByRole('button', { name: 'Join game' }).click()
+
+  const rows = host.page.getByTestId('ledger-row')
+  await expect(rows).toHaveCount(2, { timeout: 15_000 })
+  for (const i of [0, 1]) {
+    await rows.nth(i).getByLabel(/Buy-in amount/).fill('20')
+    await rows.nth(i).getByRole('button', { name: 'Buy in' }).click()
+  }
+  // $40 in, $45 of chips out: the count is $5 over.
+  await rows.nth(0).getByLabel(/Cash-out chips/).fill('30')
+  await rows.nth(0).getByRole('button', { name: 'Cash out' }).click()
+  await rows.nth(1).getByLabel(/Cash-out chips/).fill('15')
+  await rows.nth(1).getByRole('button', { name: 'Cash out' }).click()
+
+  await expect(host.page.getByTestId('miscount')).toContainText('$5 over', { timeout: 15_000 })
+  await expect(host.page.getByRole('button', { name: 'Close game' })).toBeDisabled()
+  await host.page.getByRole('radio', { name: /Host covers it/ }).check()
+  await host.page.getByRole('button', { name: 'Close game' }).click()
+
+  await expect(player.page.getByTestId('game-status')).toHaveText('closed', { timeout: 15_000 })
+  await expect(player.page.getByTestId('settlement')).toContainText('$15')
+  await expect(player.page.getByTestId('ledger-row').nth(0)).toContainText('count adjustment -$5')
+})
+
 test('signed-out visitors cannot see games', async ({ page }) => {
   await page.goto('/games')
   await expect(page.getByText('Sign in to continue')).toBeVisible({ timeout: 15_000 })

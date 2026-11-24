@@ -15,6 +15,14 @@ export type Entry = {
 export const FELTS = ['green', 'blue', 'burgundy'] as const
 export type Felt = (typeof FELTS)[number]
 
+/**
+ * How a closed game absorbs a miscount (cash-outs ≠ buy-ins). Players pay the
+ * host before they play, so losers are never charged more: either the winners
+ * share the difference or the host does.
+ */
+export const MISCOUNT_METHODS = ['winners-proportional', 'winners-equal', 'host-covers'] as const
+export type MiscountMethod = (typeof MISCOUNT_METHODS)[number]
+
 export type Game = {
   name: string
   code: string
@@ -25,8 +33,10 @@ export type Game = {
   declinedRequestIds?: string[]
   /** Missing on games created before felt colors existed; those show green. */
   felt?: Felt
-  /** Settle-up payments the host marked paid, keyed `${from}:${to}`. */
+  /** Payouts the host marked paid, keyed by the player paid. */
   paidPayments?: string[]
+  /** Chosen when the host closes a game whose count is off. */
+  miscountMethod?: MiscountMethod
 }
 
 const noAccess = { read: false, create: false, update: false, delete: false }
@@ -49,6 +59,7 @@ export const gamesSchema: CollectionSchema = {
     { name: 'declinedRequestIds', storage: 'text', interpretation: { kind: 'json' }, default: [] },
     { name: 'felt', storage: 'text', interpretation: { kind: 'select', options: [...FELTS] }, default: 'green' },
     { name: 'paidPayments', storage: 'text', interpretation: { kind: 'json' }, default: [] },
+    { name: 'miscountMethod', storage: 'text', interpretation: { kind: 'select', options: [...MISCOUNT_METHODS] } },
   ],
   uniqueOn: ['code'],
   permissions: {

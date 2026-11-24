@@ -129,6 +129,25 @@
 - Decided for the miscount feature (next): options are winners split proportionally to winnings, winners split equally, or host covers it. Losers never pay more after their buy-in (pay-first model).
 - Files: `src/pages/index.tsx`, `src/components/Chip.tsx` (new), `src/components/PokerTable.tsx`, `src/styles.css`
 
+### Miscount settling + host-pays payouts (Claude Code)
+- Pay-first model: players pay the host before playing, so settle-up is now **host payouts** ("Host → Ben $145", each player's chips plus any miscount share) instead of player-to-player payments. The old greedy `settle()` and its tests are removed. Host can still tick each payout Paid (now keyed by player id; Paid marks made on older games under the old keys won't show).
+- When everyone has cashed out but the count is off, the host gets a panel: "The count is $X over/short", a warning above 10% of the pot ("Recount the stacks before closing?"), and three options with a live per-player preview:
+  - Winners split it by winnings (proportional to each winner's net)
+  - Winners split it evenly
+  - Host covers it (only the host's result changes; a host who didn't play is still charged)
+  Winner options are disabled when nobody finished up or when a winner would drop below even. Losers' payouts never change.
+- Close is enabled once a valid option is picked; the choice is saved on the game (`miscountMethod`). Rows show "count adjustment ±$X". Recap, table, leaderboard, streaks and "your games" all use the adjusted results. Reopening clears the pick.
+- Money math in `src/lib/poker.ts`: `splitCents` (integer largest-remainder split, exact sums), `finalTotals`, `closedGameTotals`, `lifetimePnl` now takes host + method per game. 21 poker tests (over/short for each method, payouts sum to money in, losers unchanged, odd cents, no winners, winner below even, non-playing host) + stats test for adjusted nights.
+- Codex review (read-only, after re-login; first attempt failed on an expired token). Codex made no changes. Findings and what Claude Code did:
+  1. Host-covers with the host not seated returned a result where nobody absorbed the miss (payouts > money in). Fixed: `finalTotals` returns null for host-covers without a host row; the option shows "the host isn't seated in this game".
+  2. A closed record whose saved method no longer applies fell back to the raw count (money unaccounted). Fixed: new `settledTotals` falls back to the bank (host) absorbing it, adding a host row if needed; payouts still equal money in. The game page (closed) and the leaderboard both use it, so they can't disagree.
+  3. Joined players with no buy-in show $0 on the game page but don't count as a game on the leaderboard. Kept on purpose: no buy-in means they didn't play.
+  Added the tests Codex listed: host absent, edited-record fallback, short counts for even split and host-covers, single winner ending exactly even, idle joined player, splitCents tie order / negative zero / large amounts. (A proportional split can never push a winner below even, since the miss is at most the winners' total, so that case only applies to the even split.) 41 unit tests pass.
+- New e2e test: $5 over, host covers it, player paid full $15, host row shows the -$5 adjustment.
+- Landing copy/preview updated to host payouts.
+- The "Calvin's Poker Bank" logo in the app's top bar now opens the landing page (`/`) instead of `/home` (which redirects to Games). The landing page is public; `/home` stays the post-sign-in and 404 destination.
+- Files: `src/lib/poker.ts`, `src/lib/poker.test.ts`, `src/lib/stats.ts`, `src/lib/stats.test.ts`, `src/schemas/games-schema.ts`, `src/pages/(app)/(protected)/games/[id].tsx`, `src/pages/(app)/(protected)/leaderboard.tsx`, `src/pages/index.tsx`, `tests/games.spec.ts`, `src/components/Navigation.tsx`
+
 ## What I verified / changed
 
 ## Next steps

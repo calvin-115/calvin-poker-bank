@@ -84,13 +84,4 @@ npm run test:e2e       # browser tests; needs the dev server and two test accoun
 npx deepspace deploy   # ship to calvin-poker-bank.app.space
 ```
 
-## Known gaps and what I'd do next
 
-- **Buy-in requests from non-players.** Any signed-in member can create a request for a game they haven't joined. The host can decline it, but the next step is to create requests through a server action that checks for a seat.
-- **No payment verification.** This is by design (see the main tradeoff). A QR code for the Venmo link was skipped to avoid a new dependency.
-- **Replaced profile pictures stay in storage.** They're small, so there's no clean-up.
-- **Old games need a one-time admin step.** Games created before codes became private need **Secure old join codes** on /admin before they can be joined by code.
-
-## How it was built
-
-Built with Claude Code as the coding agent. Codex did one read-only, second-opinion review of the miscount money math. It found two real bugs: "host covers it" when the host wasn't seated, and closed games whose saved method no longer applied. Both were fixed with tests.

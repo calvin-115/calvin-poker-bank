@@ -217,7 +217,8 @@ export default function GamePage() {
             )}
             {!isOpen && game.data.miscountMethod && summary.differenceCents !== 0 && (
               <p className="mt-4 text-xs text-muted-foreground">
-                Count was {formatCents(Math.abs(summary.differenceCents))} {summary.differenceCents > 0 ? 'over' : 'short'} ·{' '}
+                {summary.differenceCents > 0 ? 'Bank was ' : 'Bank had '}
+                {formatCents(Math.abs(summary.differenceCents))} {summary.differenceCents > 0 ? 'short' : 'extra'} ·{' '}
                 {METHOD_COPY[game.data.miscountMethod].label.toLowerCase()}
               </p>
             )}
@@ -602,11 +603,11 @@ function MiscountPanel({
 
   return (
     <section data-testid="miscount" className="rounded-2xl border border-primary/50 bg-card p-4">
-      <h2 className="font-display text-lg font-bold">The count is {amount} {over ? 'over' : 'short'}</h2>
+      <h2 className="font-display text-lg font-bold">{over ? `The bank is ${amount} short` : `The bank has ${amount} extra`}</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         {over
-          ? `Cash-outs add up to ${amount} more than was bought in, so the bank is short.`
-          : `Cash-outs add up to ${amount} less than was bought in, so there's money left over.`}{' '}
+          ? `Players cashed out ${amount} more in chips than was bought in.`
+          : `Players cashed out ${amount} less in chips than was bought in.`}{' '}
         Losers already paid, so their amounts stay the same.
       </p>
       {Math.abs(differenceCents) > potCents * BIG_MISS_SHARE && (

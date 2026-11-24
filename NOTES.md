@@ -148,6 +148,10 @@
 - The "Calvin's Poker Bank" logo in the app's top bar now opens the landing page (`/`) instead of `/home` (which redirects to Games). The landing page is public; `/home` stays the post-sign-in and 404 destination.
 - Files: `src/lib/poker.ts`, `src/lib/poker.test.ts`, `src/lib/stats.ts`, `src/lib/stats.test.ts`, `src/schemas/games-schema.ts`, `src/pages/(app)/(protected)/games/[id].tsx`, `src/pages/(app)/(protected)/leaderboard.tsx`, `src/pages/index.tsx`, `tests/games.spec.ts`, `src/components/Navigation.tsx`
 
+### Miscount wording describes the bank (Claude Code)
+- Panel heading is now "The bank is $X short" (chips out exceed money in) or "The bank has $X extra" (chips missing), with "Players cashed out $X more/less in chips than was bought in." Closed games say "Bank was $X short" / "Bank had $X extra". Math unchanged (user confirmed it was right).
+- Files: `src/pages/(app)/(protected)/games/[id].tsx`, `tests/games.spec.ts`
+
 ## What I verified / changed
 
 ## Next steps

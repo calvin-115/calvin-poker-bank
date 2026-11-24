@@ -79,6 +79,9 @@
 - Test hooks kept: `app-navigation`, `nav-sign-in-button`, `nav-user-name`, `nav-user-email`, `static-landing`.
 - Files: `src/constants.ts`, `index.html`, `src/nav.ts`, `src/components/Navigation.tsx`, `src/pages/(app)/_layout.tsx`, `src/pages/index.tsx`, `src/pages/(app)/(protected)/_layout.tsx`
 
+### Second deploy (Claude Code)
+- Merged `redesign-and-buyin-requests` into `main` (fast-forward, commit `fe1a504`) and deployed to https://calvin-poker-bank.app.space. Checked that the live landing page serves the new title and copy. DeepSpace adds the `buyinRequests` collection and `declinedRequestIds` column automatically when the app starts.
+
 ## What I verified / changed
 
 ## Next steps

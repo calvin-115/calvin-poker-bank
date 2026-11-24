@@ -186,6 +186,10 @@
 - Kept on purpose, because the worker template wires them in: empty `src/cron.ts` / `src/jobs.ts` hooks, `src/integrations.ts` (billing config read by action routes), `src/products.ts` (empty payments config), and the agent-tools endpoint from `src/ai/` (lets AI agents use the app as a signed-in member, with that member's permissions). The in-app AI chat routes stay off: they only register when the AI chat schema is installed, and it isn't.
 - Files: `src/pages/(app)/(protected)/api-status.tsx` (deleted), `tests/collab.spec.ts`, `src/router.ts`, `src/nav.ts`, `src/themes.css`, `src/themes.ts`, `index.html`
 
+### README (Claude Code)
+- Added `README.md` for reviewers: what the app does (night flow), how it uses DeepSpace (auth/roles, RBAC collections, server actions, file storage, prerendered landing, agent tools), why no optional integrations are installed, the main tradeoff (manual host approval rather than payment verification), data model and write rules, key files, commands, known gaps and next steps.
+- Files: `README.md` (new)
+
 ## What I verified / changed
 
 ## Next steps

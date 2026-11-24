@@ -70,7 +70,6 @@ Approving a request is a single write to the game (a ledger entry tagged with th
 - `src/schemas/`: collections and their permissions
 - `src/pages/(app)/(protected)/games/[id].tsx`: the game page (table, requests, cash-out, miscount panel, payouts)
 - `src/components/PokerTable.tsx`: the SVG table and chip animation
-- `NOTES.md`: a log of every change, which agent made it, and the files touched
 
 ## Run it
 
@@ -94,4 +93,4 @@ npx deepspace deploy   # ship to calvin-poker-bank.app.space
 
 ## How it was built
 
-Built with Claude Code as the coding agent, with Codex used once for a second-opinion review of the miscount money math (its findings and the fixes are in `NOTES.md`).
+Built with Claude Code as the coding agent. Codex did one read-only, second-opinion review of the miscount money math. It found two real bugs: "host covers it" when the host wasn't seated, and closed games whose saved method no longer applied. Both were fixed with tests.

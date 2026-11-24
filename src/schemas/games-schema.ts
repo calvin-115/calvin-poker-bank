@@ -8,6 +8,8 @@ export type Entry = {
   type: EntryType
   amountCents: number
   at: string
+  /** Set when the entry came from approving a buy-in request. */
+  requestId?: string
 }
 
 export type Game = {
@@ -16,6 +18,8 @@ export type Game = {
   status: 'open' | 'closed'
   entries: Entry[]
   closedAt?: string
+  /** Missing on games created before buy-in requests existed. */
+  declinedRequestIds?: string[]
 }
 
 const noAccess = { read: false, create: false, update: false, delete: false }
@@ -35,6 +39,7 @@ export const gamesSchema: CollectionSchema = {
     },
     { name: 'entries', storage: 'text', interpretation: { kind: 'json' }, default: [] },
     { name: 'closedAt', storage: 'text', interpretation: { kind: 'datetime' } },
+    { name: 'declinedRequestIds', storage: 'text', interpretation: { kind: 'json' }, default: [] },
   ],
   uniqueOn: ['code'],
   permissions: {

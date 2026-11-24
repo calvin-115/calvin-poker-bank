@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth, useMutations, useQuery, useUserLookup } from 'deepspace'
+import { ChevronRight } from 'lucide-react'
+import { GameStatusBadge } from '@/components/GameStatusBadge'
 import { Button, Input, Label, useToast } from '@/components/ui'
 import type { Game } from '@/schemas/games-schema'
 import type { Player } from '@/schemas/players-schema'
@@ -75,64 +77,74 @@ export default function GamesPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-12 text-foreground">
-      <h1 className="mb-8 text-3xl font-bold tracking-tight">Games</h1>
+    <div className="mx-auto max-w-2xl px-4 py-6 text-foreground sm:px-6 sm:py-10">
+      <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Games</h1>
 
-      <div className="mb-10 grid gap-6 sm:grid-cols-2">
-        <form onSubmit={handleCreate} className="rounded-lg border border-border bg-card p-5">
-          <h2 className="mb-3 font-semibold">Host a game</h2>
-          <Label htmlFor="game-name">Game name</Label>
-          <Input
-            id="game-name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Friday night"
-            maxLength={80}
-            required
-          />
-          <Button type="submit" className="mt-4 w-full" disabled={!ready || busy || !name.trim()}>
-            Create game
-          </Button>
-        </form>
-
-        <form onSubmit={handleJoin} className="rounded-lg border border-border bg-card p-5">
-          <h2 className="mb-3 font-semibold">Join a game</h2>
-          <Label htmlFor="join-code">Game code</Label>
+      <div className="mt-6 grid gap-4 sm:grid-cols-2">
+        <form onSubmit={handleJoin} className="rounded-2xl border border-border bg-card p-5">
+          <h2 className="font-semibold">Join a game</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">Ask the host for the 6-character code.</p>
+          <Label htmlFor="join-code" className="sr-only">Game code</Label>
           <Input
             id="join-code"
             value={code}
             onChange={(e) => setCode(e.target.value)}
             placeholder="ABC123"
             maxLength={6}
-            className="uppercase"
+            autoComplete="off"
+            className="mt-4 h-12 text-center font-mono text-xl uppercase tracking-[0.3em] md:text-xl"
             required
           />
-          <Button type="submit" className="mt-4 w-full" disabled={!ready || busy || !code.trim()}>
+          <Button type="submit" className="mt-3 h-11 w-full" disabled={!ready || busy || !code.trim()}>
             Join game
+          </Button>
+        </form>
+
+        <form onSubmit={handleCreate} className="rounded-2xl border border-border bg-card p-5">
+          <h2 className="font-semibold">Host a game</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">You run the bank and approve buy-ins.</p>
+          <Label htmlFor="game-name" className="sr-only">Game name</Label>
+          <Input
+            id="game-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Friday night"
+            maxLength={80}
+            className="mt-4 h-12"
+            required
+          />
+          <Button type="submit" variant="secondary" className="mt-3 h-11 w-full" disabled={!ready || busy || !name.trim()}>
+            Create game
           </Button>
         </form>
       </div>
 
-      <h2 className="mb-3 text-lg font-semibold">All games</h2>
+      <h2 className="mb-2 mt-8 text-sm font-medium text-muted-foreground">All games</h2>
       {status === 'loading' && <p className="text-sm text-muted-foreground">Loading…</p>}
       {status === 'ready' && games.length === 0 && (
         <p className="text-sm text-muted-foreground">No games yet. Host the first one.</p>
       )}
-      <ul className="divide-y divide-border rounded-lg border border-border">
-        {games.map((g) => (
-          <li key={g.recordId}>
-            <Link to={`/games/${g.recordId}`} className="flex items-center justify-between px-4 py-3 hover:bg-muted">
-              <span>
-                <span className="font-medium">{g.data.name}</span>
-                <span className="ml-2 text-sm text-muted-foreground">
-                  hosted by {getName(g.createdBy) ?? 'Unknown'}
-                </span>
-              </span>
-              <span className="text-sm text-muted-foreground">{g.data.status}</span>
-            </Link>
-          </li>
-        ))}
-      </ul>
+      {games.length > 0 && (
+        <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
+          {games.map((g) => {
+            const playerCount = players.filter((p) => p.data.gameId === g.recordId).length
+            return (
+              <li key={g.recordId}>
+                <Link to={`/games/${g.recordId}`} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-accent/40">
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-medium">{g.data.name}</span>
+                    <span className="block truncate text-xs text-muted-foreground">
+                      {getName(g.createdBy) ?? 'Unknown'} · {playerCount} player{playerCount === 1 ? '' : 's'}
+                    </span>
+                  </span>
+                  <GameStatusBadge status={g.data.status} />
+                  <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                </Link>
+              </li>
+            )
+          })}
+        </ul>
+      )}
     </div>
   )
 }

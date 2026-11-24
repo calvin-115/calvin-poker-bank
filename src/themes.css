@@ -16,6 +16,35 @@
  *   4. Switch to it via `data-theme` on <html> in index.html.
  */
 
+/* Vault — the app's theme. Dark fintech look: near-black surfaces, off-white
+ * primary buttons so green/red money amounts are the only strong color. */
+[data-theme="vault"] {
+  --color-background: #09090b;
+  --color-foreground: #f4f4f5;
+  --color-card: #121214;
+  --color-card-foreground: #f4f4f5;
+  --color-popover: #18181b;
+  --color-popover-foreground: #f4f4f5;
+  --color-primary: #fafafa;
+  --color-primary-foreground: #09090b;
+  --color-secondary: #1c1c1f;
+  --color-secondary-foreground: #f4f4f5;
+  --color-muted: #1c1c1f;
+  --color-muted-foreground: #a1a1aa;
+  --color-accent: #27272a;
+  --color-accent-foreground: #f4f4f5;
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #ffffff;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-input: rgba(255, 255, 255, 0.1);
+  --color-ring: #60a5fa;
+  --radius: 0.75rem;
+  --shadow-card: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+  --shadow-card-hover: 0 4px 12px 0 rgba(0, 0, 0, 0.5);
+  --color-shell: #09090b;
+  --color-shell-panel: #121214;
+}
+
 /* Paper — light example theme; shows the full token contract incl.
  * `color-scheme: light`. Replace or delete it once the app has its own. */
 [data-theme="paper"] {

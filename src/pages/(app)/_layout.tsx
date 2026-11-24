@@ -19,7 +19,7 @@ import { Suspense, type ReactNode } from 'react'
 import { Outlet } from 'react-router-dom'
 import { DeepSpaceAuthProvider, useAuthStatus } from 'deepspace'
 import { RecordProvider, RecordScope, AgentTools } from 'deepspace'
-import Navigation from '../../components/Navigation'
+import Navigation, { TabBar } from '../../components/Navigation'
 import { useToast } from '@/components/ui'
 import { APP_NAME, SCOPE_ID } from '../../constants'
 import { schemas } from '../../schemas'
@@ -38,6 +38,7 @@ export default function AppLayout() {
               <Outlet />
             </Suspense>
           </main>
+          <TabBar />
         </div>
       </AuthBoot>
     </DeepSpaceAuthProvider>

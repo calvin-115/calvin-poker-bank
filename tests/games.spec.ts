@@ -64,6 +64,38 @@ test('host runs the ledger, flags a mismatch, closes and settles', async ({ user
   await expect(player.page.getByTestId('settlement')).toContainText('$10')
 })
 
+test('player requests buy-ins; host approves one and declines one', async ({ users }) => {
+  const usableTestAccounts = loadAllTestAccounts().length
+  test.skip(usableTestAccounts < 2, `Needs 2 usable test accounts, found ${usableTestAccounts}.`)
+  const [host, player] = await users(2)
+
+  await host.page.goto('/games')
+  await host.page.getByLabel('Game name').fill(`Request test ${Date.now()}`)
+  await host.page.getByRole('button', { name: 'Create game' }).click()
+  const code = (await host.page.getByTestId('game-code').textContent({ timeout: 15_000 }))!.trim()
+
+  await player.page.goto('/games')
+  await player.page.getByLabel('Game code').fill(code)
+  await player.page.getByRole('button', { name: 'Join game' }).click()
+
+  for (const amount of ['25', '15']) {
+    await player.page.getByLabel('Buy-in request amount').fill(amount)
+    await player.page.getByRole('button', { name: 'Request buy-in' }).click()
+  }
+  await expect(player.page.getByTestId('my-requests').getByRole('listitem')).toHaveCount(2, { timeout: 15_000 })
+
+  const requests = host.page.getByTestId('buyin-requests').getByRole('listitem')
+  await expect(requests).toHaveCount(2, { timeout: 15_000 })
+  await requests.filter({ hasText: '$25' }).getByRole('button', { name: 'Approve' }).click()
+  await requests.filter({ hasText: '$15' }).getByRole('button', { name: 'Decline' }).click()
+  await expect(host.page.getByTestId('buyin-requests')).toHaveCount(0)
+
+  // Only the approved request reaches the ledger.
+  await expect(player.page.getByTestId('ledger-row').nth(1)).toContainText('In $25', { timeout: 15_000 })
+  await expect(player.page.getByTestId('my-requests')).toContainText('Declined')
+  await expect(player.page.getByTestId('my-requests').getByRole('listitem')).toHaveCount(1)
+})
+
 test('signed-out visitors cannot see games', async ({ page }) => {
   await page.goto('/games')
   await expect(page.getByText('Sign in to continue')).toBeVisible({ timeout: 15_000 })

@@ -8,10 +8,10 @@
  * email is the credential the session was opened with.
  */
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { AuthOverlay, useAuthProfileReady, signOut } from 'deepspace'
-import { ChevronDown, LogOut, Menu, X } from 'lucide-react'
+import { ChevronDown, Coins, LogOut } from 'lucide-react'
 import { APP_NAME } from '../constants'
 import type { Role } from '../constants'
 import { nav } from '../nav'
@@ -28,54 +28,57 @@ import {
   DropdownMenuTrigger,
 } from './ui'
 
-export default function Navigation() {
-  const { isLoaded, isSignedIn, user, userLoading } = useAuthProfileReady({ requireUser: true })
-  const location = useLocation()
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [showAuthModal, setShowAuthModal] = useState(false)
-
+function useVisibleNav() {
+  const { isSignedIn, user, userLoading } = useAuthProfileReady({ requireUser: true })
   const profileReady = !isSignedIn || (!userLoading && !!user)
   const userRole = (user?.role ?? 'anonymous') as Role | 'anonymous'
 
-  // Close the mobile menu when navigating
-  useEffect(() => {
-    setMobileMenuOpen(false)
-  }, [location.pathname])
-
-  const visibleNav = nav.filter((item) => {
+  return nav.filter((item) => {
     if (item.devOnly && !import.meta.env.DEV) return false
     if (!item.roles) return true
     if (!profileReady) return false
     if (userRole === 'admin') return true
     return item.roles.includes(userRole as Role)
   })
+}
 
-  const navLink = (item: (typeof nav)[number]) => {
-    const active = location.pathname.startsWith(item.path)
-    return (
-      <Link
-        key={item.path}
-        to={item.path}
-        aria-current={active ? 'page' : undefined}
-        className={cn(
-          'px-3 py-1.5 text-sm',
-          active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
-        )}
-      >
-        {item.label}
-      </Link>
-    )
-  }
+export default function Navigation() {
+  const { isLoaded, isSignedIn, user, userLoading } = useAuthProfileReady({ requireUser: true })
+  const location = useLocation()
+  const [showAuthModal, setShowAuthModal] = useState(false)
+  const visibleNav = useVisibleNav()
+
+  const profileReady = !isSignedIn || (!userLoading && !!user)
 
   return (
     <>
       <nav data-testid="app-navigation" className="border-b border-border bg-background">
-        <div className="mx-auto flex h-12 max-w-7xl items-center gap-4 px-4">
-          <Link to="/home" className="text-sm font-semibold text-foreground">
+        <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4">
+          <Link to="/home" className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <Coins className="size-4" aria-hidden />
+            </span>
             {APP_NAME}
           </Link>
 
-          <div className="hidden items-center md:flex">{visibleNav.map(navLink)}</div>
+          <div className="hidden items-center gap-1 md:flex">
+            {visibleNav.map((item) => {
+              const active = location.pathname.startsWith(item.path)
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  aria-current={active ? 'page' : undefined}
+                  className={cn(
+                    'rounded-full px-3 py-1.5 text-sm transition-colors',
+                    active ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  {item.label}
+                </Link>
+              )
+            })}
+          </div>
 
           <div className="flex-1" />
 
@@ -136,30 +139,45 @@ export default function Navigation() {
             <button
               data-testid="nav-sign-in-button"
               onClick={() => setShowAuthModal(true)}
-              className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:opacity-90"
+              className="rounded-full bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground hover:opacity-90"
             >
               Sign in
             </button>
           )}
-
-          <button
-            className="inline-flex h-8 w-8 items-center justify-center text-muted-foreground hover:text-foreground md:hidden"
-            onClick={() => setMobileMenuOpen((prev) => !prev)}
-            aria-label="Toggle menu"
-            aria-expanded={mobileMenuOpen}
-          >
-            {mobileMenuOpen ? <X className="h-4 w-4" aria-hidden /> : <Menu className="h-4 w-4" aria-hidden />}
-          </button>
         </div>
-
-        {mobileMenuOpen && (
-          <div className="flex flex-col border-t border-border px-2 py-2 md:hidden">
-            {visibleNav.map(navLink)}
-          </div>
-        )}
       </nav>
 
       {showAuthModal && <AuthOverlay onClose={() => setShowAuthModal(false)} />}
     </>
+  )
+}
+
+/** Phone-only bottom tabs; the top bar's links take over from md up. */
+export function TabBar() {
+  const location = useLocation()
+  const visibleNav = useVisibleNav()
+
+  return (
+    <nav aria-label="Primary" className="border-t border-border bg-background pb-[env(safe-area-inset-bottom)] md:hidden">
+      <div className="flex">
+        {visibleNav.map((item) => {
+          const active = location.pathname.startsWith(item.path)
+          return (
+            <Link
+              key={item.path}
+              to={item.path}
+              aria-current={active ? 'page' : undefined}
+              className={cn(
+                'flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-medium transition-colors',
+                active ? 'text-foreground' : 'text-muted-foreground',
+              )}
+            >
+              <item.icon className="size-5" aria-hidden />
+              {item.label}
+            </Link>
+          )
+        })}
+      </div>
+    </nav>
   )
 }

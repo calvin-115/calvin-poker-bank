@@ -6,21 +6,24 @@
  * appears in the navigation bar.
  */
 
+import { Settings, Shield, Spade, Trophy, type LucideIcon } from 'lucide-react'
 import type { Role } from './constants'
 
 export interface NavItem {
   path: string
   label: string
+  /** Shown in the phone tab bar. */
+  icon: LucideIcon
   roles?: Role[]
   devOnly?: boolean
 }
 
 export const nav: NavItem[] = [
-  { path: '/games', label: 'Games' },
-  { path: '/leaderboard', label: 'Leaderboard' },
-  { path: '/settings', label: 'Settings' },
-  { path: '/admin', label: 'Admin', roles: ['admin'] },
+  { path: '/games', label: 'Games', icon: Spade },
+  { path: '/leaderboard', label: 'Leaderboard', icon: Trophy },
+  { path: '/settings', label: 'Settings', icon: Settings },
+  { path: '/admin', label: 'Admin', icon: Shield, roles: ['admin'] },
   // The /api-status debug page still exists — add
-  // `{ path: '/api-status', label: 'API Status', devOnly: true }` to surface it.
+  // `{ path: '/api-status', label: 'API Status', icon: Activity, devOnly: true }` to surface it.
   // ── Features add nav items below this line ──
 ]

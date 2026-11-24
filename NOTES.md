@@ -116,6 +116,10 @@
 - Desktop: standings on the left with a felt podium (2–1–3, crown on 1st, medals only for players who are up) and rows showing form dots and "N up/down in a row" tags; your card on the right with lifetime P&L (rolls up), best-night / best-streak / current-streak tiles, and your games.
 - Files: `src/lib/stats.ts`, `src/lib/stats.test.ts`, `src/pages/(app)/(protected)/leaderboard.tsx`
 
+### Third deploy: card room (Claude Code)
+- Merged `cardroom-redesign` into `main` (fast-forward, commit `8954b9e`) and deployed to https://calvin-poker-bank.app.space. Live landing page confirmed serving the `cardroom` theme, Fraunces font and the hero table. New `felt` / `paidPayments` game columns are added by DeepSpace on start.
+- Standing rule from now on: every commit gets merged to `main` and deployed.
+
 ## What I verified / changed
 
 ## Next steps

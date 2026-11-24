@@ -1,7 +1,10 @@
 import { useQuery, useUserLookup } from 'deepspace'
 import type { Profile } from '@/schemas/profiles-schema'
 
-/** Names and pictures as players chose them in Settings, falling back to their sign-in account's. */
+/**
+ * Names and pictures as players chose them in Settings, falling back to their
+ * sign-in account's, plus the Venmo username players pay them at when hosting.
+ */
 export function usePeople() {
   const { getName, getUser } = useUserLookup()
   const { records } = useQuery<Profile>('profiles')
@@ -10,5 +13,6 @@ export function usePeople() {
   return {
     nameOf: (userId: string) => profiles.get(userId)?.displayName || getName(userId) || 'Unknown',
     imageOf: (userId: string) => profiles.get(userId)?.avatarUrl || getUser(userId)?.imageUrl || undefined,
+    venmoOf: (userId: string) => profiles.get(userId)?.venmoUsername || undefined,
   }
 }

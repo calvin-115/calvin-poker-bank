@@ -9,6 +9,8 @@ export type Profile = {
   userId: string
   displayName: string
   avatarUrl: string
+  /** Where players pay this person when they host. Missing on profiles made before Venmo support. */
+  venmoUsername?: string
 }
 
 const noAccess = { read: false, create: false, update: false, delete: false }
@@ -19,6 +21,7 @@ export const profilesSchema: CollectionSchema = {
     { name: 'userId', storage: 'text', interpretation: 'plain', userBound: true, immutable: true },
     { name: 'displayName', storage: 'text', interpretation: 'plain', maxLength: 40, default: '' },
     { name: 'avatarUrl', storage: 'text', interpretation: { kind: 'url' }, default: '' },
+    { name: 'venmoUsername', storage: 'text', interpretation: 'plain', maxLength: 30, default: '' },
   ],
   uniqueOn: ['userId'],
   ownerField: 'userId',

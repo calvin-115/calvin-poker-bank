@@ -171,6 +171,13 @@
 ### Fourth deploy (Claude Code)
 - Merged `codes-profiles-wording` (bank wording, private join codes, profiles) into `main` and deployed. After deploy, an admin must click **Secure old join codes** on /admin once, or old games can't be joined by code.
 
+### Venmo pay prompt on buy-in requests (Claude Code)
+- Settings → Profile has a **Venmo username** field (accepts "@name" or "name"; 5–30 letters, numbers, hyphens, underscores). Stored on the player's `profiles` row (`venmoUsername`), so it applies to every game they host. Readable by signed-in members.
+- When a player requests a buy-in in a game whose host has a Venmo username, a pop-up opens: "Pay {host} $X", showing @username, amount and note ("{game name} buy-in"), with **Open Venmo** (pre-filled pay link) and **Done**. Waiting requests get a **Pay host** button to reopen it. Without a host Venmo, the card just says to pay the host directly. The host still approves manually; Venmo offers apps no way to confirm a payment arrived.
+- Link format from Venmo's payment-links docs (venmo.com/paymentlinks): `https://venmo.com/?txn=pay&recipients=…&amount=…&note=…`, plus `audience=private` so buy-ins stay out of public feeds. Helpers in `src/lib/venmo.ts` with unit tests (`venmo.test.ts`). The link itself hasn't been tried on a real phone yet.
+- QR code skipped for now (would need the `qrcode` dependency).
+- Files: `src/lib/venmo.ts` (new), `src/lib/venmo.test.ts` (new), `src/schemas/profiles-schema.ts`, `src/lib/use-people.ts`, `src/pages/(app)/(protected)/settings.tsx`, `src/pages/(app)/(protected)/games/[id].tsx`
+
 ## What I verified / changed
 
 ## Next steps

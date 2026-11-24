@@ -8,6 +8,7 @@ import { getUserColor, isImageFile, signOut, useAuth, useMutations, useQuery, us
 import { Avatar, AvatarFallback, AvatarImage, Button, Input, Label, Switch, useToast } from '@/components/ui'
 import { isSoundOn, playChipClack, setSoundOn } from '@/lib/sound'
 import { usePeople } from '@/lib/use-people'
+import { parseVenmoUsername } from '@/lib/venmo'
 import type { Profile } from '@/schemas/profiles-schema'
 
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024
@@ -78,10 +79,23 @@ function ProfileSection() {
   const { upload, getUrl, isUploading } = useR2Files({ scope: 'app' })
   const mine = records[0]
   const [draftName, setDraftName] = useState<string>()
+  const [draftVenmo, setDraftVenmo] = useState<string>()
   const fileInput = useRef<HTMLInputElement>(null)
 
   if (!userId) return null
   const name = draftName ?? mine?.data.displayName ?? ''
+  const savedVenmo = mine?.data.venmoUsername ?? ''
+  const venmo = draftVenmo ?? (savedVenmo && `@${savedVenmo}`)
+
+  function saveVenmo(e: FormEvent) {
+    e.preventDefault()
+    const username = venmo.trim() === '' ? '' : parseVenmoUsername(venmo)
+    if (username === null) {
+      return error("That doesn't look like a Venmo username", '5–30 letters, numbers, hyphens or underscores, like @calvin-poker.')
+    }
+    save({ venmoUsername: username })
+    setDraftVenmo(undefined)
+  }
 
   function save(patch: Partial<Profile>) {
     if (mine) put(mine.recordId, patch)
@@ -156,6 +170,28 @@ function ProfileSection() {
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">Leave it empty and save to use your account name.</p>
+      </form>
+
+      <form onSubmit={saveVenmo} className="mt-5 grid gap-2">
+        <Label htmlFor="venmo-username">Venmo username</Label>
+        <div className="flex gap-2">
+          <Input
+            id="venmo-username"
+            value={venmo}
+            onChange={(e) => setDraftVenmo(e.target.value)}
+            placeholder="@your-venmo"
+            maxLength={31}
+            autoComplete="off"
+            className="min-w-0"
+          />
+          <Button type="submit" disabled={!ready || venmo.trim().replace(/^@/, '') === savedVenmo}>
+            Save
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          When you host, players who request a buy-in get a Venmo button with your name and the amount filled in. Any
+          signed-in player can see it.
+        </p>
       </form>
     </section>
   )

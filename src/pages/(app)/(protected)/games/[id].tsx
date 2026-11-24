@@ -5,9 +5,10 @@ import { AlertTriangle, ArrowRight, Check, ChevronLeft, Coins, Crown } from 'luc
 import { AnimatedCents } from '@/components/AnimatedCents'
 import { GameStatusBadge } from '@/components/GameStatusBadge'
 import { PokerTable, type TableSeat } from '@/components/PokerTable'
-import { Avatar, AvatarFallback, AvatarImage, Button, Input, useToast } from '@/components/ui'
+import { Avatar, AvatarFallback, AvatarImage, Button, buttonVariants, Input, Modal, useToast } from '@/components/ui'
 import { cn } from '@/lib/utils'
 import { usePeople } from '@/lib/use-people'
+import { venmoPayUrl } from '@/lib/venmo'
 import {
   finalTotals,
   formatCents,
@@ -27,7 +28,7 @@ export default function GamePage() {
   const { id } = useParams()
   const { userId } = useAuth()
   const { user } = useUser()
-  const { nameOf: displayName, imageOf } = usePeople()
+  const { nameOf: displayName, imageOf, venmoOf } = usePeople()
   const { records: games, status } = useQuery<Game>('games')
   const { records: players } = useQuery<Player>('players', { where: { gameId: id } })
   const { put, ready } = useMutations<Game>('games')
@@ -124,12 +125,15 @@ export default function GamePage() {
     put(game!.recordId, { paidPayments: next })
   }
 
+  /** Resolves true once the server has the request, so the pay prompt only opens for a real request. */
   async function requestBuyin(amountCents: number) {
-    if (!userId) return
+    if (!userId) return false
     try {
       await requestMutations.createConfirmed({ gameId: game!.recordId, userId, amountCents })
+      return true
     } catch (err) {
       error('Could not send request', err instanceof Error ? err.message : undefined)
+      return false
     }
   }
 
@@ -198,6 +202,9 @@ export default function GamePage() {
               disabled={!requestMutations.ready}
               onRequest={requestBuyin}
               onRemove={(requestId) => requestMutations.remove(requestId)}
+              hostName={displayName(game.createdBy)}
+              hostVenmo={venmoOf(game.createdBy)}
+              note={`${game.data.name} buy-in`}
             />
           )}
 
@@ -400,27 +407,41 @@ function RequestBuyin({
   disabled,
   onRequest,
   onRemove,
+  hostName,
+  hostVenmo,
+  note,
 }: {
   requests: RecordData<BuyinRequest>[]
   declinedIds: Set<string>
   disabled: boolean
-  onRequest: (amountCents: number) => void
+  /** Resolves true when the request was saved. */
+  onRequest: (amountCents: number) => Promise<boolean>
   onRemove: (requestId: string) => void
+  hostName: string
+  /** The host's Venmo username, if they've set one in Settings. */
+  hostVenmo: string | undefined
+  note: string
 }) {
   const [amount, setAmount] = useState('')
+  // The amount to pay in the Venmo prompt; undefined while it's closed.
+  const [payCents, setPayCents] = useState<number>()
 
-  function submit(e: FormEvent) {
+  async function submit(e: FormEvent) {
     e.preventDefault()
     const cents = parseDollars(amount)
     if (cents === null || cents === 0) return
-    onRequest(cents)
     setAmount('')
+    if ((await onRequest(cents)) && hostVenmo) setPayCents(cents)
   }
 
   return (
     <section className="rounded-2xl border border-border bg-card p-4">
       <h2 className="font-display text-lg font-bold">Need chips?</h2>
-      <p className="mt-0.5 text-xs text-muted-foreground">The host approves each buy-in before it goes in the ledger.</p>
+      <p className="mt-0.5 text-xs text-muted-foreground">
+        {hostVenmo
+          ? `Request an amount, pay ${hostName} on Venmo, and they approve it once it arrives.`
+          : `Request an amount and pay ${hostName} directly. They approve it once they have the money.`}
+      </p>
       <form onSubmit={submit} className="mt-3 flex gap-2">
         <Input
           aria-label="Buy-in request amount"
@@ -447,13 +468,57 @@ function RequestBuyin({
                     {declined ? 'Declined' : 'Waiting for host'}
                   </span>
                 </span>
-                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => onRemove(r.recordId)}>
-                  {declined ? 'Dismiss' : 'Cancel'}
-                </Button>
+                <span className="flex shrink-0 gap-1">
+                  {hostVenmo && !declined && (
+                    <Button size="sm" variant="secondary" className="h-7 text-xs" onClick={() => setPayCents(r.data.amountCents)}>
+                      Pay host
+                    </Button>
+                  )}
+                  <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => onRemove(r.recordId)}>
+                    {declined ? 'Dismiss' : 'Cancel'}
+                  </Button>
+                </span>
               </li>
             )
           })}
         </ul>
+      )}
+
+      {hostVenmo && (
+        <Modal open={payCents !== undefined} onClose={() => setPayCents(undefined)} size="sm">
+          <Modal.Header>
+            <Modal.Title>
+              Pay {hostName} {formatCents(payCents ?? 0)}
+            </Modal.Title>
+            <Modal.Description>
+              Your request is in. Send the buy-in on Venmo and {hostName} will approve it once it arrives.
+            </Modal.Description>
+          </Modal.Header>
+          <Modal.Body>
+            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+              <dt className="text-muted-foreground">Venmo</dt>
+              <dd className="font-mono">@{hostVenmo}</dd>
+              <dt className="text-muted-foreground">Amount</dt>
+              <dd className="font-display font-bold">{formatCents(payCents ?? 0)}</dd>
+              <dt className="text-muted-foreground">Note</dt>
+              <dd>{note}</dd>
+            </dl>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="ghost" onClick={() => setPayCents(undefined)}>
+              Done
+            </Button>
+            <a
+              href={venmoPayUrl(hostVenmo, payCents ?? 0, note)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={buttonVariants()}
+              onClick={() => setPayCents(undefined)}
+            >
+              Open Venmo
+            </a>
+          </Modal.Footer>
+        </Modal>
       )}
     </section>
   )

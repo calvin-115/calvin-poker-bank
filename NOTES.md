@@ -178,6 +178,9 @@
 - QR code skipped for now (would need the `qrcode` dependency).
 - Files: `src/lib/venmo.ts` (new), `src/lib/venmo.test.ts` (new), `src/schemas/profiles-schema.ts`, `src/lib/use-people.ts`, `src/pages/(app)/(protected)/settings.tsx`, `src/pages/(app)/(protected)/games/[id].tsx`
 
+### Pushed to GitHub (Claude Code)
+- Pushed `main` to `origin` (github.com/calvin-115/calvin-poker-bank), `ed0845d..5519ce5`: every change since the first deploy (redesigns, buy-in requests, landing page, miscount settling, private join codes, profiles, Venmo). Checked the new commits for secrets first; none found. Feature branches stay local since they're all merged into `main`.
+
 ## What I verified / changed
 
 ## Next steps

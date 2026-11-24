@@ -1,81 +1,47 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { getUserColor, useAuth, useMutations, useQuery, useUserLookup, type RecordData } from 'deepspace'
+import { getUserColor, useQuery, useUserLookup, type RecordData } from 'deepspace'
 import { GameStatusBadge } from '@/components/GameStatusBadge'
 import { Button, Input, Label, useToast } from '@/components/ui'
+import { callAction } from '@/lib/actions'
 import { formatCents } from '@/lib/poker'
 import { FELTS, type Felt, type Game } from '@/schemas/games-schema'
 import type { Player } from '@/schemas/players-schema'
 
-// No 0/O or 1/I, so codes read cleanly across a table.
-const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-
-function generateCode() {
-  const bytes = crypto.getRandomValues(new Uint8Array(6))
-  return Array.from(bytes, (b) => CODE_ALPHABET[b % CODE_ALPHABET.length]).join('')
-}
-
 export default function GamesPage() {
-  const { userId } = useAuth()
   const navigate = useNavigate()
   const { error } = useToast()
   const { getName } = useUserLookup()
   const { records: games, status } = useQuery<Game>('games', { orderBy: 'createdAt', orderDir: 'desc' })
   const { records: players } = useQuery<Player>('players')
-  const gameMutations = useMutations<Game>('games')
-  const playerMutations = useMutations<Player>('players')
-  const ready = gameMutations.ready && playerMutations.ready
 
   const [name, setName] = useState('')
   const [felt, setFelt] = useState<Felt>('green')
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
 
-  async function handleCreate(e: FormEvent) {
-    e.preventDefault()
-    if (!userId) return
+  // Hosting and joining go through server actions so join codes never reach
+  // people who aren't in the game (see src/actions).
+  async function enterGame(action: 'hostGame' | 'joinGame', params: Record<string, unknown>, failure: string) {
     setBusy(true)
     try {
-      const gameId = await gameMutations.createConfirmed({
-        name: name.trim(),
-        code: generateCode(),
-        status: 'open',
-        entries: [],
-        felt,
-      })
-      await playerMutations.createConfirmed({ gameId, userId })
+      const { gameId } = await callAction<{ gameId: string }>(action, params)
       navigate(`/games/${gameId}`)
     } catch (err) {
-      error('Could not create game', err instanceof Error ? err.message : undefined)
+      error(failure, err instanceof Error ? err.message : undefined)
     } finally {
       setBusy(false)
     }
   }
 
-  async function handleJoin(e: FormEvent) {
+  function handleCreate(e: FormEvent) {
     e.preventDefault()
-    if (!userId) return
-    const game = games.find((g) => g.data.code === code.trim().toUpperCase())
-    if (!game) {
-      error('No game with that code')
-      return
-    }
-    if (game.data.status === 'closed') {
-      error('That game is closed')
-      return
-    }
-    const alreadyJoined = players.some((p) => p.data.gameId === game.recordId && p.data.userId === userId)
-    setBusy(true)
-    try {
-      if (!alreadyJoined) {
-        await playerMutations.createConfirmed({ gameId: game.recordId, userId })
-      }
-      navigate(`/games/${game.recordId}`)
-    } catch (err) {
-      error('Could not join game', err instanceof Error ? err.message : undefined)
-    } finally {
-      setBusy(false)
-    }
+    enterGame('hostGame', { name: name.trim(), felt }, 'Could not create game')
+  }
+
+  function handleJoin(e: FormEvent) {
+    e.preventDefault()
+    enterGame('joinGame', { code }, 'Could not join game')
   }
 
   return (
@@ -98,7 +64,7 @@ export default function GamesPage() {
               className="mt-4 h-14 border-2 border-dashed border-primary/50 bg-background/60 text-center font-mono text-2xl uppercase tracking-[0.35em] text-primary md:text-2xl"
               required
             />
-            <Button type="submit" className="mt-3 h-11 w-full" disabled={!ready || busy || !code.trim()}>
+            <Button type="submit" className="mt-3 h-11 w-full" disabled={busy || !code.trim()}>
               Join game
             </Button>
           </form>
@@ -138,7 +104,7 @@ export default function GamesPage() {
                 </label>
               ))}
             </fieldset>
-            <Button type="submit" variant="secondary" className="mt-4 h-11 w-full" disabled={!ready || busy || !name.trim()}>
+            <Button type="submit" variant="secondary" className="mt-4 h-11 w-full" disabled={busy || !name.trim()}>
               Create game
             </Button>
           </form>

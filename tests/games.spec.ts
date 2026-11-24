@@ -13,6 +13,11 @@ test('a player joins a hosted game by code and both see the roster live', async 
   expect(code).toMatch(/^[A-Z0-9]{6}$/)
   await expect(host.page.getByTestId('player-list').getByRole('listitem')).toHaveCount(1)
 
+  // Before joining, the player can open the game but not see its code.
+  await player.page.goto(new URL(host.page.url()).pathname)
+  await expect(player.page.getByText('Players only')).toBeVisible({ timeout: 15_000 })
+  await expect(player.page.getByTestId('game-code')).toHaveCount(0)
+
   await player.page.goto('/games')
   await player.page.getByLabel('Game code').fill(code!)
   await player.page.getByRole('button', { name: 'Join game' }).click()

@@ -152,6 +152,15 @@
 - Panel heading is now "The bank is $X short" (chips out exceed money in) or "The bank has $X extra" (chips missing), with "Players cashed out $X more/less in chips than was bought in." Closed games say "Bank was $X short" / "Bank had $X extra". Math unchanged (user confirmed it was right).
 - Files: `src/pages/(app)/(protected)/games/[id].tsx`, `tests/games.spec.ts`
 
+### Private join codes (Claude Code)
+- Every member still sees every game (open and closed), but a game's join code is now readable only by its host, players who joined, and admins, enforced by the server (not just hidden in the UI).
+- Codes moved to a new `gameCodes` collection (`gameId`, `code`, `members`; `read: 'collaborator'` for members, no member writes). DeepSpace has no per-field read rules, so the code can't stay on the game record.
+- Hosting and joining now go through server actions in `src/actions/index.ts`: `hostGame` (creates the game, a server-generated code shared with the host, and the host's seat) and `joinGame` (checks the code and that the game is open, seats the caller, adds them to the code's members). Client helper `src/lib/actions.ts`.
+- Players can no longer create seats directly (`players` member create: false), which closes joining a game without its code.
+- Old games: their code is still on the game record until an admin clicks **Secure old join codes** on /admin (`secureJoinCodes` action: copies each code into `gameCodes` shared with the host and current players, then clears it from the game). Until then their players still see the code on the game page, but **joining an old game by code won't work until the button is clicked**. `games.code` is no longer required/immutable so it can be cleared.
+- Non-players see "Players only" where the code was. e2e: added a check that a player who hasn't joined sees no code.
+- Files: `src/schemas/game-codes-schema.ts` (new), `src/schemas.ts`, `src/schemas/games-schema.ts`, `src/schemas/players-schema.ts`, `src/actions/index.ts`, `src/lib/actions.ts` (new), `src/pages/(app)/(protected)/games/index.tsx`, `src/pages/(app)/(protected)/games/[id].tsx`, `src/pages/(app)/(protected)/admin.tsx`, `tests/games.spec.ts`
+
 ## What I verified / changed
 
 ## Next steps

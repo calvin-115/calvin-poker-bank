@@ -7,7 +7,8 @@ export type Player = {
 
 const noAccess = { read: false, create: false, update: false, delete: false }
 
-// userBound + ownerField: a member can only add or remove themselves.
+// Seats are created only by the hostGame / joinGame actions, which check the
+// join code. userBound + ownerField: a member can only remove their own seat.
 export const playersSchema: CollectionSchema = {
   name: 'players',
   columns: [
@@ -19,7 +20,7 @@ export const playersSchema: CollectionSchema = {
   permissions: {
     '*': noAccess,
     viewer: noAccess,
-    member: { read: true, create: true, update: false, delete: 'own' },
+    member: { read: true, create: false, update: false, delete: 'own' },
     admin: { read: true, create: true, update: true, delete: true },
   },
 }

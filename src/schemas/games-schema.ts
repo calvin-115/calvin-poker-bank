@@ -25,7 +25,8 @@ export type MiscountMethod = (typeof MISCOUNT_METHODS)[number]
 
 export type Game = {
   name: string
-  code: string
+  /** Legacy: codes now live in gameCodes. Old games keep theirs here until an admin secures them. */
+  code?: string | null
   status: 'open' | 'closed'
   entries: Entry[]
   closedAt?: string
@@ -47,7 +48,8 @@ export const gamesSchema: CollectionSchema = {
   name: 'games',
   columns: [
     { name: 'name', storage: 'text', interpretation: 'plain', required: true, maxLength: 80 },
-    { name: 'code', storage: 'text', interpretation: 'plain', required: true, immutable: true },
+    // Kept (not required, not immutable) so the secureJoinCodes action can clear old codes.
+    { name: 'code', storage: 'text', interpretation: 'plain' },
     {
       name: 'status',
       storage: 'text',

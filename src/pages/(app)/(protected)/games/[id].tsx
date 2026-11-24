@@ -18,6 +18,7 @@ import {
   type PlayerTotal,
 } from '@/lib/poker'
 import type { BuyinRequest } from '@/schemas/buyin-requests-schema'
+import type { GameCode } from '@/schemas/game-codes-schema'
 import { MISCOUNT_METHODS, type Entry, type EntryType, type Game, type MiscountMethod } from '@/schemas/games-schema'
 import type { Player } from '@/schemas/players-schema'
 
@@ -30,6 +31,7 @@ export default function GamePage() {
   const { records: players } = useQuery<Player>('players', { where: { gameId: id } })
   const { put, ready } = useMutations<Game>('games')
   const { records: requests } = useQuery<BuyinRequest>('buyinRequests', { where: { gameId: id } })
+  const { records: codes } = useQuery<GameCode>('gameCodes', { where: { gameId: id } })
   const requestMutations = useMutations<BuyinRequest>('buyinRequests')
   const { error } = useToast()
   const [chosenMethod, setChosenMethod] = useState<MiscountMethod>()
@@ -60,6 +62,9 @@ export default function GamePage() {
   const nameOf = (playerId: string) => `${getName(playerId) ?? 'Unknown'}${playerId === userId ? ' (you)' : ''}`
 
   const isPlayer = players.some((p) => p.data.userId === userId)
+  // The server only returns a code row to the game's players and admins. Old
+  // games keep their code on the game until an admin secures it from /admin.
+  const joinCode = codes[0]?.data.code ?? (isPlayer ? game.data.code : null)
   const approvedIds = new Set(entries.flatMap((e) => (e.requestId ? [e.requestId] : [])))
   const declinedIds = new Set(game.data.declinedRequestIds ?? [])
   const unapproved = requests.filter((r) => !approvedIds.has(r.recordId))
@@ -157,9 +162,13 @@ export default function GamePage() {
         </div>
         <div className="shrink-0 rounded-xl border border-primary/40 bg-card px-4 py-2 text-center">
           <p className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">Join code</p>
-          <p data-testid="game-code" className="font-mono text-xl font-semibold tracking-[0.25em] text-primary lg:text-2xl">
-            {game.data.code}
-          </p>
+          {joinCode ? (
+            <p data-testid="game-code" className="font-mono text-xl font-semibold tracking-[0.25em] text-primary lg:text-2xl">
+              {joinCode}
+            </p>
+          ) : (
+            <p className="py-1 text-sm text-muted-foreground">Players only</p>
+          )}
         </div>
       </header>
 

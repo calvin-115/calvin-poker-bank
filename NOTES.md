@@ -120,6 +120,15 @@
 - Merged `cardroom-redesign` into `main` (fast-forward, commit `8954b9e`) and deployed to https://calvin-poker-bank.app.space. Live landing page confirmed serving the `cardroom` theme, Fraunces font and the hero table. New `felt` / `paidPayments` game columns are added by DeepSpace on start.
 - Standing rule from now on: every commit gets merged to `main` and deployed.
 
+### Landing page (Claude Code)
+- Full marketing landing at `/`, designed from Mobbin references (Discord/Duolingo heroes, Railway "how it works", incident.io feature switcher, Linear bento cards). Static and prerendered as before.
+- Sections: sticky top bar (anchors + Enter the app) → hero "Pay first. Play after." with Host a game / Join with a code and a live demo table (a $20 rebuy every 2.6s triggers the real chip-flight animation; loose chips float around it) → "How a night works" 3 numbered chip steps → feature switcher (buy-in requests, live table, settle up, leaderboard) with example previews → extras grid (felt colors, chip sounds, phone or laptop, no more IOUs) → felt "Deal me in" call to action → footer.
+- Previews use example names and amounts; the live-table preview is the real `PokerTable`, the others are static mock-ups of the app's screens.
+- Motion here loops (marketing page); all of it stops under reduced motion. Page clips horizontal overflow so the floating chips can't cause sideways scroll on phones.
+- Shared chip drawing moved to `src/components/Chip.tsx` (`ChipFace`, `ChipIcon`); `PokerTable` uses it.
+- Decided for the miscount feature (next): options are winners split proportionally to winnings, winners split equally, or host covers it. Losers never pay more after their buy-in (pay-first model).
+- Files: `src/pages/index.tsx`, `src/components/Chip.tsx` (new), `src/components/PokerTable.tsx`, `src/styles.css`
+
 ## What I verified / changed
 
 ## Next steps

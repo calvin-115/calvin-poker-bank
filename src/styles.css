@@ -288,3 +288,15 @@
 @media (prefers-reduced-motion: reduce) {
   .animate-chip-fly, .animate-seat-glow, .animate-confetti { animation: none; display: none; }
 }
+
+/* Landing page only: loose chips drifting around the hero. */
+@keyframes chip-float {
+  0%, 100% { transform: translateY(0) rotate(var(--tilt, 0deg)); }
+  50% { transform: translateY(-10px) rotate(calc(var(--tilt, 0deg) + 8deg)); }
+}
+
+@utility animate-chip-float { animation: chip-float 6s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-chip-float { animation: none; }
+}

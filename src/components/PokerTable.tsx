@@ -1,4 +1,5 @@
 import { useId, useState, type CSSProperties } from 'react'
+import { CHIP_COLORS as CHIP, ChipFace } from '@/components/Chip'
 import { formatCents } from '@/lib/poker'
 import { playChipClack } from '@/lib/sound'
 import { useAnimatedNumber } from '@/lib/use-animated-number'
@@ -22,7 +23,7 @@ const SEAT = { rx: 350, ry: 196 }
 const PLATE = { rx: 248, ry: 110 }
 const POT_Y = CY + 62
 
-const CHIP_COLORS = ['#c8432e', '#3d6fa3', '#d9a441']
+const CHIP_COLORS = [CHIP.red, CHIP.blue, CHIP.brass]
 const TONE_FILL = { up: 'var(--color-success)', down: 'var(--color-destructive)', neutral: 'rgb(242 230 207 / 0.75)' }
 
 /**
@@ -179,7 +180,7 @@ export function PokerTable({ seats, potCents }: { seats: TableSeat[]; potCents: 
               onAnimationStart={playChipClack}
               onAnimationEnd={() => setFlights((f) => f.filter((x) => x.key !== flight.key))}
             >
-              <Chip x={from.x} y={from.y} color="#d9a441" />
+              <Chip x={from.x} y={from.y} color={CHIP.brass} />
             </g>
           </g>
         )
@@ -191,9 +192,7 @@ export function PokerTable({ seats, potCents }: { seats: TableSeat[]; potCents: 
 function Chip({ x, y, color }: { x: number; y: number; color: string }) {
   return (
     <g transform={`translate(${x} ${y})`}>
-      <circle r="13" fill={color} stroke="#1b120d" strokeWidth="1" />
-      <circle r="10" fill="none" stroke="#f2e6cf" strokeWidth="3.5" strokeDasharray="5 3.5" />
-      <circle r="6.5" fill={color} stroke="#f2e6cf" strokeWidth="1" />
+      <ChipFace color={color} />
     </g>
   )
 }

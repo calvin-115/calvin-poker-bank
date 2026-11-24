@@ -16,6 +16,7 @@ import { APP_NAME } from '../constants'
 import type { Role } from '../constants'
 import { nav } from '../nav'
 import { cn } from '../lib/utils'
+import { usePeople } from '../lib/use-people'
 import {
   Avatar,
   AvatarFallback,
@@ -47,6 +48,7 @@ export default function Navigation() {
   const location = useLocation()
   const [showAuthModal, setShowAuthModal] = useState(false)
   const visibleNav = useVisibleNav()
+  const { nameOf, imageOf } = usePeople()
 
   const profileReady = !isSignedIn || (!userLoading && !!user)
 
@@ -98,16 +100,14 @@ export default function Navigation() {
                     className="group flex items-center gap-2 rounded-full border border-border bg-card/60 py-1 pl-1 pr-2.5 text-sm transition-colors hover:bg-card"
                   >
                     <Avatar className="h-6 w-6 ring-1 ring-inset ring-border">
-                      <AvatarImage src={user.imageUrl ?? undefined} referrerPolicy="no-referrer" />
-                      <AvatarFallback className="text-[11px]">
-                        {(user.name?.[0] ?? user.email?.[0] ?? '?').toUpperCase()}
-                      </AvatarFallback>
+                      <AvatarImage src={imageOf(user.id)} referrerPolicy="no-referrer" />
+                      <AvatarFallback className="text-[11px]">{nameOf(user.id).charAt(0).toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <span
                       data-testid="nav-user-name"
                       className="hidden max-w-[140px] truncate text-foreground sm:inline"
                     >
-                      {user.name || user.email}
+                      {nameOf(user.id)}
                     </span>
                     <ChevronDown
                       className="h-3.5 w-3.5 text-muted-foreground transition-transform duration-150 group-data-[popup-open]:rotate-180"
@@ -119,7 +119,7 @@ export default function Navigation() {
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>
                   <div className="truncate font-medium text-foreground">
-                    {user.name || 'Signed in'}
+                    {nameOf(user.id)}
                   </div>
                   <div
                     data-testid="nav-user-email"

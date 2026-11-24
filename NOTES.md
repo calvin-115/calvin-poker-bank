@@ -161,6 +161,16 @@
 - Non-players see "Players only" where the code was. e2e: added a check that a player who hasn't joined sees no code.
 - Files: `src/schemas/game-codes-schema.ts` (new), `src/schemas.ts`, `src/schemas/games-schema.ts`, `src/schemas/players-schema.ts`, `src/actions/index.ts`, `src/lib/actions.ts` (new), `src/pages/(app)/(protected)/games/index.tsx`, `src/pages/(app)/(protected)/games/[id].tsx`, `src/pages/(app)/(protected)/admin.tsx`, `tests/games.spec.ts`
 
+### Profile settings: display name + picture (Claude Code)
+- Settings → Profile: change your display name (up to 40 characters; save it empty to go back to your account name) and upload a profile picture (images under 5 MB; "Use account picture" removes it).
+- App-only: DeepSpace refuses app writes to `name`/`imageUrl` on `users` (they come from the sign-in provider and are re-synced on every connect), so choices are stored in a new `profiles` collection (`userId`, `displayName`, `avatarUrl`; readable by members, editable only by the owner). Pictures upload with the built-in `useR2Files({ scope: 'app' })`, which is world-readable (fine for avatars, per DeepSpace docs).
+- New `usePeople()` hook (`src/lib/use-people.ts`) returns name and picture with the profile first and the account as fallback; used on the game page, table, games list, leaderboard and the nav account button. The Admin user list still shows real account names and emails.
+- Replaced pictures aren't deleted from storage (small, harmless leftovers).
+- Files: `src/schemas/profiles-schema.ts` (new), `src/schemas.ts`, `src/lib/use-people.ts` (new), `src/pages/(app)/(protected)/settings.tsx`, `src/pages/(app)/(protected)/games/[id].tsx`, `src/pages/(app)/(protected)/games/index.tsx`, `src/pages/(app)/(protected)/leaderboard.tsx`, `src/components/Navigation.tsx`
+
+### Fourth deploy (Claude Code)
+- Merged `codes-profiles-wording` (bank wording, private join codes, profiles) into `main` and deployed. After deploy, an admin must click **Secure old join codes** on /admin once, or old games can't be joined by code.
+
 ## What I verified / changed
 
 ## Next steps

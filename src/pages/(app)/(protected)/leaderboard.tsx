@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom'
-import { getUserColor, useAuth, useQuery, useUserLookup, type RecordData } from 'deepspace'
+import { getUserColor, useAuth, useQuery, type RecordData } from 'deepspace'
 import { Crown } from 'lucide-react'
 import { AnimatedCents } from '@/components/AnimatedCents'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui'
 import { cn } from '@/lib/utils'
 import { closedGameTotals, formatCents, lifetimePnl, type ClosedGame, type LifetimeRow } from '@/lib/poker'
+import { usePeople } from '@/lib/use-people'
 import { playerNights, playerStats, type PlayerStats, type Result } from '@/lib/stats'
 import type { Game } from '@/schemas/games-schema'
 
@@ -13,7 +14,7 @@ const FORM_COLOR: Record<Result, string> = { up: 'bg-success', down: 'bg-destruc
 
 export default function LeaderboardPage() {
   const { userId } = useAuth()
-  const { getName, getUser } = useUserLookup()
+  const { nameOf, imageOf } = usePeople()
   const { records, status } = useQuery<Game>('games', { where: { status: 'closed' } })
 
   // Only closed games count: open games are still in play.
@@ -32,7 +33,6 @@ export default function LeaderboardPage() {
     const mine = closedGameTotals(closedOf(g)).find((t) => t.playerId === userId)
     return mine ? [{ game: g, netCents: mine.netCents }] : []
   })
-  const nameOf = (playerId: string) => getName(playerId) ?? 'Unknown'
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 text-foreground sm:px-6 lg:py-10">
@@ -96,7 +96,7 @@ export default function LeaderboardPage() {
           )}
 
           {rows.length > 0 && (
-            <Podium rows={rows.slice(0, 3)} nameOf={nameOf} imageOf={(id) => getUser(id)?.imageUrl} />
+            <Podium rows={rows.slice(0, 3)} nameOf={nameOf} imageOf={imageOf} />
           )}
 
           {rows.length > 0 && (
@@ -109,7 +109,7 @@ export default function LeaderboardPage() {
                     row={r}
                     rank={i + 1}
                     name={nameOf(r.playerId)}
-                    imageUrl={getUser(r.playerId)?.imageUrl}
+                    imageUrl={imageOf(r.playerId)}
                     isYou={r.playerId === userId}
                     stats={statsOf(r.playerId)}
                   />

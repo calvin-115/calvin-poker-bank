@@ -1,12 +1,13 @@
 import { useEffect, useState, type CSSProperties, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { getUserColor, useAuth, useMutations, useQuery, useUser, useUserLookup, type RecordData } from 'deepspace'
+import { getUserColor, useAuth, useMutations, useQuery, useUser, type RecordData } from 'deepspace'
 import { AlertTriangle, ArrowRight, Check, ChevronLeft, Coins, Crown } from 'lucide-react'
 import { AnimatedCents } from '@/components/AnimatedCents'
 import { GameStatusBadge } from '@/components/GameStatusBadge'
 import { PokerTable, type TableSeat } from '@/components/PokerTable'
 import { Avatar, AvatarFallback, AvatarImage, Button, Input, useToast } from '@/components/ui'
 import { cn } from '@/lib/utils'
+import { usePeople } from '@/lib/use-people'
 import {
   finalTotals,
   formatCents,
@@ -26,7 +27,7 @@ export default function GamePage() {
   const { id } = useParams()
   const { userId } = useAuth()
   const { user } = useUser()
-  const { getName, getUser } = useUserLookup()
+  const { nameOf: displayName, imageOf } = usePeople()
   const { records: games, status } = useQuery<Game>('games')
   const { records: players } = useQuery<Player>('players', { where: { gameId: id } })
   const { put, ready } = useMutations<Game>('games')
@@ -59,7 +60,7 @@ export default function GamePage() {
   const entries = game.data.entries
   const totals = playerTotals(players.map((p) => p.data.userId), entries)
   const summary = ledgerSummary(totals)
-  const nameOf = (playerId: string) => `${getName(playerId) ?? 'Unknown'}${playerId === userId ? ' (you)' : ''}`
+  const nameOf = (playerId: string) => `${displayName(playerId)}${playerId === userId ? ' (you)' : ''}`
 
   const isPlayer = players.some((p) => p.data.userId === userId)
   // The server only returns a code row to the game's players and admins. Old
@@ -83,9 +84,9 @@ export default function GamePage() {
 
   const seats: TableSeat[] = shown.map((t) => ({
     playerId: t.playerId,
-    name: getName(t.playerId) ?? 'Unknown',
+    name: displayName(t.playerId),
     color: getUserColor(t.playerId),
-    imageUrl: getUser(t.playerId)?.imageUrl,
+    imageUrl: imageOf(t.playerId),
     caption: t.cashoutCents === null ? `in ${formatCents(t.buyinCents)}` : formatCents(t.netCents, { signed: true }),
     tone: t.cashoutCents === null || t.netCents === 0 ? 'neutral' : t.netCents > 0 ? 'up' : 'down',
     isYou: t.playerId === userId,
@@ -286,7 +287,7 @@ export default function GamePage() {
                   key={t.playerId}
                   total={t}
                   name={nameOf(t.playerId)}
-                  imageUrl={getUser(t.playerId)?.imageUrl}
+                  imageUrl={imageOf(t.playerId)}
                   isHostRow={t.playerId === game.createdBy}
                   isYou={t.playerId === userId}
                   canEdit={canEdit}

@@ -1,17 +1,18 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { getUserColor, useQuery, useUserLookup, type RecordData } from 'deepspace'
+import { getUserColor, useQuery, type RecordData } from 'deepspace'
 import { GameStatusBadge } from '@/components/GameStatusBadge'
 import { Button, Input, Label, useToast } from '@/components/ui'
 import { callAction } from '@/lib/actions'
 import { formatCents } from '@/lib/poker'
+import { usePeople } from '@/lib/use-people'
 import { FELTS, type Felt, type Game } from '@/schemas/games-schema'
 import type { Player } from '@/schemas/players-schema'
 
 export default function GamesPage() {
   const navigate = useNavigate()
   const { error } = useToast()
-  const { getName } = useUserLookup()
+  const { nameOf } = usePeople()
   const { records: games, status } = useQuery<Game>('games', { orderBy: 'createdAt', orderDir: 'desc' })
   const { records: players } = useQuery<Player>('players')
 
@@ -122,7 +123,7 @@ export default function GamesPage() {
                 <li key={g.recordId}>
                   <GameCard
                     game={g}
-                    hostName={getName(g.createdBy) ?? 'Unknown'}
+                    hostName={nameOf(g.createdBy)}
                     playerIds={players.filter((p) => p.data.gameId === g.recordId).map((p) => p.data.userId)}
                   />
                 </li>

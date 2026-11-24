@@ -91,6 +91,12 @@
   --color-shell: #0a0a0a;
   --color-shell-panel: #161616;
 
+  /* Card room: wood rail color and the three type roles. */
+  --color-rail: #4a2c1b;
+  --font-sans: 'Inter', 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
   /* Animations */
   --animate-pulse-glow: pulse-glow 2s ease-in-out infinite;
 }
@@ -164,7 +170,7 @@
   }
 
   body {
-    font-family: 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: var(--font-sans);
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -233,4 +239,52 @@
   a, button, [role="button"], input, select, textarea {
     touch-action: manipulation;
   }
+}
+
+/*
+ * Card room surfaces. Felt reads --felt-* from the theme, re-tinted per game
+ * by [data-felt] (themes.css).
+ */
+@utility felt {
+  background: radial-gradient(120% 90% at 50% 25%, var(--felt-hi), var(--felt) 55%, var(--felt-lo));
+}
+
+/* Wood rail with a brass inlay, drawn as inset rings so it never changes layout. */
+@utility felt-ring {
+  box-shadow:
+    inset 0 0 0 6px var(--color-rail),
+    inset 0 0 0 7px rgb(217 164 65 / 0.6),
+    0 12px 32px -16px rgb(0 0 0 / 0.6);
+}
+
+/* A warm lamp over the table instead of flat black. */
+@utility bg-lamplight {
+  background:
+    radial-gradient(ellipse 90% 45% at 50% -8%, rgb(217 164 65 / 0.13), transparent 70%),
+    var(--color-background);
+}
+
+/* Motion kit — every animation here is switched off for reduced motion below. */
+@keyframes chip-fly {
+  0% { transform: translate(0, 0) scale(1); opacity: 1; }
+  80% { transform: translate(var(--dx), var(--dy)) scale(0.9); opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) scale(0.9); opacity: 0; }
+}
+
+@keyframes seat-glow {
+  0% { opacity: 0.9; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.5); }
+}
+
+@keyframes confetti-fall {
+  0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(var(--fall, 320px)) rotate(540deg); opacity: 0; }
+}
+
+@utility animate-chip-fly { animation: chip-fly 700ms cubic-bezier(0.3, 0.7, 0.3, 1) forwards; }
+@utility animate-seat-glow { animation: seat-glow 900ms ease-out forwards; }
+@utility animate-confetti { animation: confetti-fall 2.4s ease-in forwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-chip-fly, .animate-seat-glow, .animate-confetti { animation: none; display: none; }
 }

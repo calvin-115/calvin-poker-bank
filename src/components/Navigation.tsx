@@ -52,9 +52,9 @@ export default function Navigation() {
 
   return (
     <>
-      <nav data-testid="app-navigation" className="border-b border-border bg-background">
+      <nav data-testid="app-navigation" className="border-b border-border">
         <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4">
-          <Link to="/home" className="flex items-center gap-2 text-sm font-semibold text-foreground">
+          <Link to="/home" className="flex items-center gap-2 font-display text-base font-bold text-foreground">
             <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <Coins className="size-4" aria-hidden />
             </span>
@@ -71,7 +71,7 @@ export default function Navigation() {
                   aria-current={active ? 'page' : undefined}
                   className={cn(
                     'rounded-full px-3 py-1.5 text-sm transition-colors',
-                    active ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground',
+                    active ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground',
                   )}
                 >
                   {item.label}
@@ -168,8 +168,10 @@ export function TabBar() {
               to={item.path}
               aria-current={active ? 'page' : undefined}
               className={cn(
-                'flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-medium transition-colors',
-                active ? 'text-foreground' : 'text-muted-foreground',
+                'relative flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-medium transition-colors',
+                active
+                  ? 'text-primary before:absolute before:top-0 before:h-0.5 before:w-8 before:rounded-full before:bg-primary'
+                  : 'text-muted-foreground',
               )}
             >
               <item.icon className="size-5" aria-hidden />

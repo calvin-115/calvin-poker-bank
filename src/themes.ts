@@ -18,9 +18,9 @@
 
 export const THEMES = [
   {
-    id: 'vault',
-    label: 'Vault',
-    description: 'Dark fintech theme for the poker bank.',
+    id: 'cardroom',
+    label: 'Card room',
+    description: 'Warm walnut, felt and brass theme for the poker bank.',
   },
   {
     id: 'slate',

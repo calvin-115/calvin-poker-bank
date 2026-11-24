@@ -1,8 +1,10 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type CSSProperties, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { useAuth, useMutations, useQuery, useUser, useUserLookup, type RecordData } from 'deepspace'
-import { ArrowRight, ChevronLeft } from 'lucide-react'
+import { getUserColor, useAuth, useMutations, useQuery, useUser, useUserLookup, type RecordData } from 'deepspace'
+import { ArrowRight, Check, ChevronLeft, Coins, Crown } from 'lucide-react'
+import { AnimatedCents } from '@/components/AnimatedCents'
 import { GameStatusBadge } from '@/components/GameStatusBadge'
+import { PokerTable, type TableSeat } from '@/components/PokerTable'
 import { Avatar, AvatarFallback, AvatarImage, Button, Input, useToast } from '@/components/ui'
 import { cn } from '@/lib/utils'
 import { formatCents, ledgerSummary, parseDollars, playerTotals, settle, type PlayerTotal } from '@/lib/poker'
@@ -53,6 +55,19 @@ export default function GamePage() {
   const unapproved = requests.filter((r) => !approvedIds.has(r.recordId))
   const pending = unapproved.filter((r) => !declinedIds.has(r.recordId))
   const myRequests = unapproved.filter((r) => r.data.userId === userId)
+  const paidPayments = new Set(game.data.paidPayments ?? [])
+
+  const seats: TableSeat[] = totals.map((t) => ({
+    playerId: t.playerId,
+    name: getName(t.playerId) ?? 'Unknown',
+    color: getUserColor(t.playerId),
+    imageUrl: getUser(t.playerId)?.imageUrl,
+    caption: t.cashoutCents === null ? `in ${formatCents(t.buyinCents)}` : formatCents(t.netCents, { signed: true }),
+    tone: t.cashoutCents === null || t.netCents === 0 ? 'neutral' : t.netCents > 0 ? 'up' : 'down',
+    isYou: t.playerId === userId,
+    buyinCents: t.buyinCents,
+  }))
+  const winner = [...totals].sort((a, b) => b.netCents - a.netCents)[0]
 
   function saveEntries(next: Entry[]) {
     put(game!.recordId, { entries: next })
@@ -79,6 +94,11 @@ export default function GamePage() {
     put(game!.recordId, { declinedRequestIds: [...declinedIds, requestId] })
   }
 
+  function togglePaid(key: string) {
+    const next = paidPayments.has(key) ? [...paidPayments].filter((k) => k !== key) : [...paidPayments, key]
+    put(game!.recordId, { paidPayments: next })
+  }
+
   async function requestBuyin(amountCents: number) {
     if (!userId) return
     try {
@@ -93,7 +113,7 @@ export default function GamePage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-6 text-foreground sm:px-6 sm:py-10">
+    <div data-felt={game.data.felt ?? 'green'} className="mx-auto max-w-6xl px-4 py-6 text-foreground sm:px-6 lg:py-10">
       <Link to="/games" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
         <ChevronLeft className="size-4" />
         All games
@@ -101,93 +121,173 @@ export default function GamePage() {
 
       <header className="mt-4 flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="truncate text-2xl font-semibold tracking-tight sm:text-3xl">{game.data.name}</h1>
+          <h1 className="truncate font-display text-3xl font-bold tracking-tight lg:text-4xl">{game.data.name}</h1>
           <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             <GameStatusBadge data-testid="game-status" status={game.data.status} />
             Hosted by {nameOf(game.createdBy)}
           </p>
         </div>
-        <div className="shrink-0 rounded-xl border border-border bg-card px-3 py-2 text-center">
-          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Join code</p>
-          <p data-testid="game-code" className="font-mono text-xl font-semibold tracking-[0.2em]">{game.data.code}</p>
+        <div className="shrink-0 rounded-xl border border-primary/40 bg-card px-4 py-2 text-center">
+          <p className="font-mono text-[10px] font-medium uppercase tracking-widest text-muted-foreground">Join code</p>
+          <p data-testid="game-code" className="font-mono text-xl font-semibold tracking-[0.25em] text-primary lg:text-2xl">
+            {game.data.code}
+          </p>
         </div>
       </header>
 
-      {canEdit && pending.length > 0 && (
-        <PendingRequests
-          requests={pending}
-          nameOf={nameOf}
-          onApprove={(r) => addEntry(r.data.userId, 'buyin', r.data.amountCents, r.recordId)}
-          onDecline={declineRequest}
-        />
-      )}
+      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
+        <div className="grid gap-4 lg:col-start-1 lg:row-start-1">
+          {!isOpen && winner && (
+            <Recap gameId={game.recordId} winnerName={nameOf(winner.playerId)} winnerCents={winner.netCents} potCents={summary.totalInCents} playerCount={totals.length} />
+          )}
+          <PokerTable seats={seats} potCents={summary.totalInCents} />
+        </div>
 
-      {isOpen && isPlayer && !canManage && (
-        <RequestBuyin
-          requests={myRequests}
-          declinedIds={declinedIds}
-          disabled={!requestMutations.ready}
-          onRequest={requestBuyin}
-          onRemove={(requestId) => requestMutations.remove(requestId)}
-        />
-      )}
+        <aside className="grid gap-4 lg:col-start-2 lg:row-span-2 lg:row-start-1">
+          {canEdit && pending.length > 0 && (
+            <PendingRequests
+              requests={pending}
+              nameOf={nameOf}
+              onApprove={(r) => addEntry(r.data.userId, 'buyin', r.data.amountCents, r.recordId)}
+              onDecline={declineRequest}
+            />
+          )}
 
-      <section className="mt-6 rounded-2xl border border-border bg-card p-5">
-        <p className="text-sm text-muted-foreground">Pot</p>
-        <p className="mt-1 text-4xl font-semibold tracking-tight">{formatCents(summary.totalInCents)}</p>
-        <dl className="mt-4 grid grid-cols-2 gap-4 border-t border-border pt-4 text-sm">
-          <div>
-            <dt className="text-muted-foreground">Players</dt>
-            <dd className="mt-0.5 font-medium">{totals.length}</dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">Cashed out</dt>
-            <dd className="mt-0.5 font-medium">{formatCents(summary.totalOutCents)}</dd>
-          </div>
-        </dl>
-      </section>
+          {isOpen && isPlayer && !canManage && (
+            <RequestBuyin
+              requests={myRequests}
+              declinedIds={declinedIds}
+              disabled={!requestMutations.ready}
+              onRequest={requestBuyin}
+              onRemove={(requestId) => requestMutations.remove(requestId)}
+            />
+          )}
 
-      <section className="mt-6">
-        <h2 className="mb-2 text-sm font-medium text-muted-foreground">Players</h2>
-        <ul data-testid="player-list" className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
-          {totals.map((t) => (
-            <PlayerRow
-              key={t.playerId}
-              total={t}
-              name={nameOf(t.playerId)}
-              imageUrl={getUser(t.playerId)?.imageUrl}
-              isHostRow={t.playerId === game.createdBy}
-              isYou={t.playerId === userId}
-              canEdit={canEdit}
-              onAdd={addEntry}
+          <section className="rounded-2xl border border-border bg-card p-5">
+            <h2 className="font-mono text-xs font-medium uppercase tracking-widest text-muted-foreground">Bank</h2>
+            <dl className="mt-3 grid grid-cols-3 gap-3 text-sm">
+              <div>
+                <dt className="text-muted-foreground">Bought in</dt>
+                <dd className="mt-0.5 font-display text-xl font-bold"><AnimatedCents cents={summary.totalInCents} /></dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Cashed out</dt>
+                <dd className="mt-0.5 font-display text-xl font-bold"><AnimatedCents cents={summary.totalOutCents} /></dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Players</dt>
+                <dd className="mt-0.5 font-display text-xl font-bold">{totals.length}</dd>
+              </div>
+            </dl>
+            <MismatchBanner summary={summary} nameOf={nameOf} hasCashouts={totals.some((t) => t.cashoutCents !== null)} />
+            {canManage && (
+              <div className="mt-4 grid gap-2">
+                {isOpen ? (
+                  <Button onClick={() => setStatus('closed')} disabled={!summary.canClose} className="w-full">
+                    Close game
+                  </Button>
+                ) : (
+                  <Button variant="secondary" onClick={() => setStatus('open')} className="w-full">
+                    Reopen game
+                  </Button>
+                )}
+                {isOpen && !summary.canClose && (
+                  <span className="text-xs text-muted-foreground">Closing needs every cash-out entered and the totals to match.</span>
+                )}
+              </div>
+            )}
+          </section>
+
+          {(summary.canClose || !isOpen) && (
+            <Settlement
+              totals={totals}
+              nameOf={nameOf}
+              closed={!isOpen}
+              paid={paidPayments}
+              onTogglePaid={canManage && !isOpen ? togglePaid : undefined}
+            />
+          )}
+        </aside>
+
+        <div className="grid gap-6 lg:col-start-1 lg:row-start-2">
+          <section>
+            <h2 className="mb-2 font-mono text-xs font-medium uppercase tracking-widest text-muted-foreground">Players</h2>
+            <ul data-testid="player-list" className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
+              {totals.map((t) => (
+                <PlayerRow
+                  key={t.playerId}
+                  total={t}
+                  name={nameOf(t.playerId)}
+                  imageUrl={getUser(t.playerId)?.imageUrl}
+                  isHostRow={t.playerId === game.createdBy}
+                  isYou={t.playerId === userId}
+                  canEdit={canEdit}
+                  onAdd={addEntry}
+                />
+              ))}
+            </ul>
+          </section>
+
+          <EntryLog entries={entries} nameOf={nameOf} canEdit={canEdit} onRemove={removeEntry} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const CONFETTI = Array.from({ length: 18 }, (_, i) => ({
+  left: `${(i * 37) % 100}%`,
+  delay: `${(i % 6) * 0.18}s`,
+  color: ['#c8432e', '#3d6fa3', '#d9a441'][i % 3],
+}))
+
+function Recap({
+  gameId,
+  winnerName,
+  winnerCents,
+  potCents,
+  playerCount,
+}: {
+  gameId: string
+  winnerName: string
+  winnerCents: number
+  potCents: number
+  playerCount: number
+}) {
+  // Chips rain once per game on this device; the recap itself always shows.
+  const seenKey = `poker-bank:recap-seen:${gameId}`
+  const [celebrate] = useState(() => localStorage.getItem(seenKey) === null)
+  useEffect(() => {
+    localStorage.setItem(seenKey, '1')
+  }, [seenKey])
+
+  return (
+    <section className="felt felt-ring relative overflow-hidden rounded-2xl px-6 py-7 text-center animate-in fade-in-0 zoom-in-95">
+      {celebrate && (
+        <div className="pointer-events-none absolute inset-0" aria-hidden>
+          {CONFETTI.map((c, i) => (
+            <span
+              key={i}
+              className="animate-confetti absolute top-0 size-3 rounded-full border-2 border-dashed border-[#f2e6cf]"
+              style={{ left: c.left, animationDelay: c.delay, background: c.color, '--fall': '260px' } as CSSProperties}
             />
           ))}
-        </ul>
-      </section>
-
-      <MismatchBanner summary={summary} nameOf={nameOf} hasCashouts={totals.some((t) => t.cashoutCents !== null)} />
-
-      {canManage && (
-        <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-          {isOpen ? (
-            <Button onClick={() => setStatus('closed')} disabled={!summary.canClose} className="w-full sm:w-auto">
-              Close game
-            </Button>
-          ) : (
-            <Button variant="secondary" onClick={() => setStatus('open')} className="w-full sm:w-auto">
-              Reopen game
-            </Button>
-          )}
-          {isOpen && !summary.canClose && (
-            <span className="text-sm text-muted-foreground">Closing needs every cash-out entered and the totals to match.</span>
-          )}
         </div>
       )}
-
-      {(summary.canClose || !isOpen) && <Settlement totals={totals} nameOf={nameOf} closed={!isOpen} />}
-
-      <EntryLog entries={entries} nameOf={nameOf} canEdit={canEdit} onRemove={removeEntry} />
-    </div>
+      <p className="font-mono text-xs uppercase tracking-widest text-[#f2e6cf]/80">Game closed</p>
+      {winnerCents > 0 ? (
+        <p className="mt-2 flex items-center justify-center gap-2 font-display text-3xl font-bold text-[#f2e6cf] lg:text-4xl">
+          <Crown className="size-7 text-primary" aria-hidden />
+          {winnerName} +{formatCents(winnerCents)}
+        </p>
+      ) : (
+        <p className="mt-2 font-display text-3xl font-bold text-[#f2e6cf]">Everyone broke even</p>
+      )}
+      <p className="mt-1 text-sm text-[#f2e6cf]/80">
+        {winnerCents > 0 ? 'Biggest win of the night · ' : ''}
+        {playerCount} player{playerCount === 1 ? '' : 's'} · {formatCents(potCents)} pot
+      </p>
+    </section>
   )
 }
 
@@ -203,16 +303,18 @@ function PendingRequests({
   onDecline: (requestId: string) => void
 }) {
   return (
-    <section className="mt-6">
-      <h2 className="mb-2 text-sm font-medium text-muted-foreground">Buy-in requests</h2>
-      <ul data-testid="buyin-requests" className="divide-y divide-border overflow-hidden rounded-2xl border border-warning/40 bg-card">
+    <section className="rounded-2xl border border-primary/50 bg-card p-4">
+      <h2 className="font-mono text-xs font-medium uppercase tracking-widest text-primary">
+        Buy-in requests · {requests.length}
+      </h2>
+      <ul data-testid="buyin-requests" className="mt-2 divide-y divide-border">
         {requests.map((r) => (
-          <li key={r.recordId} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+          <li key={r.recordId} className="flex items-center justify-between gap-3 py-2.5 text-sm animate-in fade-in-0 slide-in-from-bottom-2">
             <span className="min-w-0 truncate">
               <span className="font-medium">{nameOf(r.data.userId)}</span>{' '}
-              <span className="text-base font-semibold">{formatCents(r.data.amountCents)}</span>
+              <span className="font-display text-base font-bold">{formatCents(r.data.amountCents)}</span>
             </span>
-            <span className="flex shrink-0 gap-2">
+            <span className="flex shrink-0 gap-1">
               <Button size="sm" variant="ghost" onClick={() => onDecline(r.recordId)}>Decline</Button>
               <Button size="sm" onClick={() => onApprove(r)}>Approve</Button>
             </span>
@@ -247,8 +349,8 @@ function RequestBuyin({
   }
 
   return (
-    <section className="mt-6 rounded-2xl border border-border bg-card p-4">
-      <h2 className="text-sm font-medium">Need chips?</h2>
+    <section className="rounded-2xl border border-border bg-card p-4">
+      <h2 className="font-display text-lg font-bold">Need chips?</h2>
       <p className="mt-0.5 text-xs text-muted-foreground">The host approves each buy-in before it goes in the ledger.</p>
       <form onSubmit={submit} className="mt-3 flex gap-2">
         <Input
@@ -259,14 +361,17 @@ function RequestBuyin({
           placeholder="$"
           className="min-w-0"
         />
-        <Button type="submit" disabled={disabled}>Request buy-in</Button>
+        <Button type="submit" disabled={disabled}>
+          <Coins aria-hidden />
+          Request buy-in
+        </Button>
       </form>
       {requests.length > 0 && (
         <ul data-testid="my-requests" className="mt-3 divide-y divide-border border-t border-border text-sm">
           {requests.map((r) => {
             const declined = declinedIds.has(r.recordId)
             return (
-              <li key={r.recordId} className="flex items-center justify-between gap-3 py-2">
+              <li key={r.recordId} className="flex items-center justify-between gap-3 py-2 animate-in fade-in-0 slide-in-from-bottom-2">
                 <span>
                   <span className="font-medium">{formatCents(r.data.amountCents)}</span>
                   <span className={cn('ml-2 text-xs', declined ? 'text-destructive' : 'text-muted-foreground')}>
@@ -317,11 +422,13 @@ function PlayerRow({
   const cashedOut = total.cashoutCents !== null
 
   return (
-    <li data-testid="ledger-row" className={cn('px-4 py-3', isYou && 'bg-accent/40')}>
+    <li data-testid="ledger-row" className={cn('px-4 py-3', isYou && 'bg-primary/5')}>
       <div className="flex items-center gap-3">
-        <Avatar className="size-9">
+        <Avatar className={cn('size-9', isYou && 'ring-2 ring-primary')}>
           <AvatarImage src={imageUrl} />
-          <AvatarFallback>{name.charAt(0).toUpperCase()}</AvatarFallback>
+          <AvatarFallback className="font-semibold text-[#22150c]" style={{ background: getUserColor(total.playerId) }}>
+            {name.charAt(0).toUpperCase()}
+          </AvatarFallback>
         </Avatar>
         <div className="min-w-0 flex-1">
           <p className="truncate font-medium">
@@ -334,7 +441,7 @@ function PlayerRow({
         </div>
         <p
           className={cn(
-            'text-base font-semibold',
+            'font-display text-lg font-bold',
             cashedOut && total.netCents > 0 && 'text-success',
             cashedOut && total.netCents < 0 && 'text-destructive',
             !cashedOut && 'text-muted-foreground',
@@ -385,7 +492,7 @@ function MismatchBanner({
   if (!hasCashouts) return null
   if (summary.waitingOn.length > 0) {
     return (
-      <p className="mt-4 rounded-xl border border-border bg-muted px-4 py-3 text-sm">
+      <p className="mt-4 rounded-xl border border-border bg-muted px-3 py-2.5 text-sm">
         Waiting on cash-outs from {summary.waitingOn.map(nameOf).join(', ')}.
       </p>
     )
@@ -393,7 +500,7 @@ function MismatchBanner({
   if (summary.differenceCents !== 0) {
     const direction = summary.differenceCents > 0 ? 'more' : 'less'
     return (
-      <p data-testid="mismatch" className="mt-4 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+      <p data-testid="mismatch" className="mt-4 rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
         Cash-outs don't match buy-ins: {formatCents(Math.abs(summary.differenceCents))} {direction} in chips than was bought in. Recount the stacks.
       </p>
     )
@@ -401,26 +508,61 @@ function MismatchBanner({
   return null
 }
 
-function Settlement({ totals, nameOf, closed }: { totals: PlayerTotal[]; nameOf: (id: string) => string; closed: boolean }) {
+function Settlement({
+  totals,
+  nameOf,
+  closed,
+  paid,
+  onTogglePaid,
+}: {
+  totals: PlayerTotal[]
+  nameOf: (id: string) => string
+  closed: boolean
+  paid: Set<string>
+  /** Only the host gets this, and only once the game is closed. */
+  onTogglePaid?: (key: string) => void
+}) {
   const payments = settle(totals)
   return (
-    <section className="mt-8">
-      <h2 className="mb-2 text-sm font-medium text-muted-foreground">{closed ? 'Settle up' : 'Settle up (preview)'}</h2>
+    <section className="rounded-2xl border border-border bg-card p-4">
+      <h2 className="font-mono text-xs font-medium uppercase tracking-widest text-muted-foreground">
+        {closed ? 'Settle up' : 'Settle up (preview)'}
+      </h2>
       {payments.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Everyone broke even. Nothing to pay.</p>
+        <p className="mt-2 text-sm text-muted-foreground">Everyone broke even. Nothing to pay.</p>
       ) : (
-        <ul data-testid="settlement" className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
-          {payments.map((p) => (
-            <li key={`${p.from}-${p.to}`} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
-              <span className="flex min-w-0 items-center gap-2">
-                <span className="truncate font-medium">{nameOf(p.from)}</span>
-                <ArrowRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                <span className="sr-only">pays</span>
-                <span className="truncate font-medium">{nameOf(p.to)}</span>
-              </span>
-              <span className="text-base font-semibold">{formatCents(p.amountCents)}</span>
-            </li>
-          ))}
+        <ul data-testid="settlement" className="mt-2 divide-y divide-border">
+          {payments.map((p) => {
+            const key = `${p.from}:${p.to}`
+            const isPaid = paid.has(key)
+            return (
+              <li key={key} className={cn('flex items-center justify-between gap-3 py-2.5 text-sm', isPaid && 'opacity-60')}>
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="truncate font-medium">{nameOf(p.from)}</span>
+                  <ArrowRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                  <span className="sr-only">pays</span>
+                  <span className="truncate font-medium">{nameOf(p.to)}</span>
+                </span>
+                <span className="flex shrink-0 items-center gap-2">
+                  <span className={cn('font-display text-base font-bold', isPaid && 'line-through')}>{formatCents(p.amountCents)}</span>
+                  {onTogglePaid ? (
+                    <Button
+                      size="sm"
+                      variant={isPaid ? 'secondary' : 'ghost'}
+                      className="h-7 px-2 text-xs"
+                      aria-pressed={isPaid}
+                      onClick={() => onTogglePaid(key)}
+                    >
+                      {isPaid && <Check aria-hidden />}
+                      Paid
+                    </Button>
+                  ) : (
+                    isPaid && <span className="text-xs text-success">Paid</span>
+                  )}
+                </span>
+              </li>
+            )
+          })}
         </ul>
       )}
     </section>
@@ -440,13 +582,13 @@ function EntryLog({
 }) {
   if (entries.length === 0) return null
   return (
-    <section className="mt-8">
-      <h2 className="mb-2 text-sm font-medium text-muted-foreground">Activity</h2>
+    <section>
+      <h2 className="mb-2 font-mono text-xs font-medium uppercase tracking-widest text-muted-foreground">Activity</h2>
       <ul className="divide-y divide-border rounded-2xl border border-border text-xs text-muted-foreground">
         {[...entries].reverse().map((e) => (
           <li key={e.id} className="flex items-center justify-between gap-3 px-4 py-2">
             <span>
-              <span className="mr-2">{new Date(e.at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
+              <span className="mr-2 font-mono">{new Date(e.at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
               <span className="text-foreground">{nameOf(e.playerId)}</span> {e.type === 'buyin' ? 'bought in' : 'cashed out'} {formatCents(e.amountCents)}
             </span>
             {canEdit && (

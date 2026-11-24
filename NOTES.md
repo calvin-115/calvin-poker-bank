@@ -82,6 +82,40 @@
 ### Second deploy (Claude Code)
 - Merged `redesign-and-buyin-requests` into `main` (fast-forward, commit `fe1a504`) and deployed to https://calvin-poker-bank.app.space. Checked that the live landing page serves the new title and copy. DeepSpace adds the `buyinRequests` collection and `declinedRequestIds` column automatically when the app starts.
 
+### Card room redesign report (Claude Code)
+- Research only, no code changes. Mobbin study of gaming/tracking apps (Duolingo, Fixtured, Fetch, Splitwise, 7-Eleven, Nibble, FotMob, NBA, Strava, Runna) and a 6-step plan for a warmer "card room" redesign: walnut/felt/brass palette, a drawn SVG poker table with players seated, chip and number motion, a closing recap, table-style game cards, and a leaderboard with podium, form and personal bests.
+- Report (private artifact): https://claude.ai/artifact/HWtmQ1fzkcQacTMs4yvFHp
+- Waiting on decisions: drawn table vs photo, sound, felt color per game, dark-only.
+- Decisions (user agreed to all recommendations): drawn SVG table, chip sound off by default with a Settings toggle, host picks felt color per game, dark-only. App is desktop and mobile, leaning desktop: wide multi-column layouts that stack on phones.
+
+### Card room step 1: theme (Claude Code)
+- New `cardroom` theme replaces `vault`: walnut background, brass primary, cream text, warm muted tones, rounder corners. Money colors overridden in this theme: win mint `#6fd39a`, loss chip-red `#ec6a50` (kept distinct from felt green).
+- Fonts via Google Fonts: Fraunces (display: names, big numbers), Inter (body), IBM Plex Mono (codes, labels). Tailwind classes `font-display` / `font-mono`.
+- New utilities in `styles.css`: `felt` (radial felt gradient, re-tinted by `data-felt`), `felt-ring` (wood rail + brass inlay), `bg-lamplight` (warm glow at the top of the app). Felt colors green/blue/burgundy in `themes.css`.
+- Files: `src/themes.css`, `src/themes.ts`, `src/styles.css`, `index.html`, `src/pages/(app)/_layout.tsx`, `src/components/Navigation.tsx`
+
+### Card room steps 2–4: table, motion, closing recap (Claude Code)
+- `PokerTable` (SVG): wood rail, grained felt in the game's color, players seated clockwise from the bottom with you first (brass ring), name + "in $X" / net on the felt, pot in the center with chip stacks that grow with the pot.
+- Motion: when a player's buy-in total grows, a chip flies from their seat to the pot and the seat glows (render-time state comparison, no effect). Pot and bank totals roll to new values (`useAnimatedNumber`, `AnimatedCents`). Request rows fade/slide in. All motion is off under reduced-motion.
+- Chip sound: synthesized with Web Audio (`src/lib/sound.ts`, no audio file or dependency), plays with each chip flight only if turned on in Settings → Table sounds (per device, localStorage, off by default).
+- Game page is now two columns on desktop: table + players + activity on the left; sidebar with requests/approvals, Bank card (bought in, cashed out, players, mismatch, close/reopen) and settle-up on the right. Phones stack table → requests → bank → players.
+- Closed games show a felt recap above the table: crown + biggest winner, pot, player count. Chips rain once per game per device (localStorage `poker-bank:recap-seen:<gameId>`).
+- Settle-up: host can tick each payment as Paid (stored on the game as `paidPayments`, keys `from:to`); everyone sees "Paid" and the row dims.
+- New game columns: `felt` (select, default green) and `paidPayments` (json). Both additive; older games read as green / nothing paid.
+- Files: `src/components/PokerTable.tsx`, `src/components/AnimatedCents.tsx`, `src/lib/use-animated-number.ts`, `src/lib/sound.ts`, `src/schemas/games-schema.ts`, `src/pages/(app)/(protected)/games/[id].tsx`
+
+### Card room step 5: lobby, landing, nav, settings (Claude Code)
+- Games list: desktop has a sticky left column (Join with a dashed brass "card slot" code field; Host with a felt color picker) and a grid of table cards (mini felt oval in the game's color, pot in the middle, a colored dot per seated player, name, host, status).
+- Landing: two-column hero on desktop with a `PokerTable` of example players (illustration only), brass eyebrow, Fraunces headline; feature cards below.
+- Nav: brand in Fraunces; active top link is a brass pill; phone tab bar shows a brass bar over the active tab.
+- Settings: restyled, plus the Chip sounds toggle (plays a sample clack when turned on).
+- Files: `src/pages/(app)/(protected)/games/index.tsx`, `src/pages/index.tsx`, `src/components/Navigation.tsx`, `src/pages/(app)/(protected)/settings.tsx`
+
+### Card room step 6: leaderboard (Claude Code)
+- New pure stats in `src/lib/stats.ts` (unit-tested in `stats.test.ts`): per-player nights from closed games, last-5 form, current streak (break-even ends it), longest winning streak, biggest win.
+- Desktop: standings on the left with a felt podium (2–1–3, crown on 1st, medals only for players who are up) and rows showing form dots and "N up/down in a row" tags; your card on the right with lifetime P&L (rolls up), best-night / best-streak / current-streak tiles, and your games.
+- Files: `src/lib/stats.ts`, `src/lib/stats.test.ts`, `src/pages/(app)/(protected)/leaderboard.tsx`
+
 ## What I verified / changed
 
 ## Next steps

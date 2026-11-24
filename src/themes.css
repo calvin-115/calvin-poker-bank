@@ -16,33 +16,53 @@
  *   4. Switch to it via `data-theme` on <html> in index.html.
  */
 
-/* Vault — the app's theme. Dark fintech look: near-black surfaces, off-white
- * primary buttons so green/red money amounts are the only strong color. */
-[data-theme="vault"] {
-  --color-background: #09090b;
-  --color-foreground: #f4f4f5;
-  --color-card: #121214;
-  --color-card-foreground: #f4f4f5;
-  --color-popover: #18181b;
-  --color-popover-foreground: #f4f4f5;
-  --color-primary: #fafafa;
-  --color-primary-foreground: #09090b;
-  --color-secondary: #1c1c1f;
-  --color-secondary-foreground: #f4f4f5;
-  --color-muted: #1c1c1f;
-  --color-muted-foreground: #a1a1aa;
-  --color-accent: #27272a;
-  --color-accent-foreground: #f4f4f5;
-  --color-destructive: #ef4444;
-  --color-destructive-foreground: #ffffff;
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-input: rgba(255, 255, 255, 0.1);
-  --color-ring: #60a5fa;
-  --radius: 0.75rem;
+/* Card room — the app's theme. A home game at night: walnut surfaces, brass
+ * trim, cream text, felt for the table. Money colors are overridden here on
+ * purpose: win mint and loss chip-red must stay distinct from the felt green. */
+[data-theme="cardroom"] {
+  --color-background: #1b120d;
+  --color-foreground: #f2e6cf;
+  --color-card: #261911;
+  --color-card-foreground: #f2e6cf;
+  --color-popover: #2b1c13;
+  --color-popover-foreground: #f2e6cf;
+  --color-primary: #d9a441;
+  --color-primary-foreground: #22150c;
+  --color-secondary: #33221a;
+  --color-secondary-foreground: #f2e6cf;
+  --color-muted: #2b1d15;
+  --color-muted-foreground: #b49c80;
+  --color-accent: #3a271c;
+  --color-accent-foreground: #f2e6cf;
+  --color-destructive: #ec6a50;
+  --color-destructive-foreground: #22150c;
+  --color-success: #6fd39a;
+  --color-success-foreground: #22150c;
+  --color-border: rgba(242, 230, 207, 0.12);
+  --color-input: rgba(242, 230, 207, 0.18);
+  --color-ring: #d9a441;
+  --radius: 0.875rem;
   --shadow-card: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
-  --shadow-card-hover: 0 4px 12px 0 rgba(0, 0, 0, 0.5);
-  --color-shell: #09090b;
-  --color-shell-panel: #121214;
+  --shadow-card-hover: 0 6px 18px 0 rgba(0, 0, 0, 0.45);
+  --color-shell: #1b120d;
+  --color-shell-panel: #261911;
+
+  --felt-hi: #23895a;
+  --felt: #155c3c;
+  --felt-lo: #0c3a26;
+}
+
+/* Felt colors a host can pick per game. Anything with data-felt re-tints the
+ * felt, felt-ring and PokerTable inside it. */
+[data-felt="blue"] {
+  --felt-hi: #2f6fa8;
+  --felt: #1d4a74;
+  --felt-lo: #112c47;
+}
+[data-felt="burgundy"] {
+  --felt-hi: #9a3346;
+  --felt: #6c1f2e;
+  --felt-lo: #40121b;
 }
 
 /* Paper — light example theme; shows the full token contract incl.

@@ -12,6 +12,9 @@ export type Entry = {
   requestId?: string
 }
 
+export const FELTS = ['green', 'blue', 'burgundy'] as const
+export type Felt = (typeof FELTS)[number]
+
 export type Game = {
   name: string
   code: string
@@ -20,6 +23,10 @@ export type Game = {
   closedAt?: string
   /** Missing on games created before buy-in requests existed. */
   declinedRequestIds?: string[]
+  /** Missing on games created before felt colors existed; those show green. */
+  felt?: Felt
+  /** Settle-up payments the host marked paid, keyed `${from}:${to}`. */
+  paidPayments?: string[]
 }
 
 const noAccess = { read: false, create: false, update: false, delete: false }
@@ -40,6 +47,8 @@ export const gamesSchema: CollectionSchema = {
     { name: 'entries', storage: 'text', interpretation: { kind: 'json' }, default: [] },
     { name: 'closedAt', storage: 'text', interpretation: { kind: 'datetime' } },
     { name: 'declinedRequestIds', storage: 'text', interpretation: { kind: 'json' }, default: [] },
+    { name: 'felt', storage: 'text', interpretation: { kind: 'select', options: [...FELTS] }, default: 'green' },
+    { name: 'paidPayments', storage: 'text', interpretation: { kind: 'json' }, default: [] },
   ],
   uniqueOn: ['code'],
   permissions: {

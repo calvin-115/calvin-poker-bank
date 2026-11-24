@@ -1,10 +1,8 @@
 /**
  * Theme catalog.
  *
- * The scaffold ships two placeholder themes: `slate` (dark default, defined
- * in styles.css) and `paper` (light example, defined in themes.css). They
- * are scaffolding, not a design — give the app its own theme before first
- * deploy:
+ * The app uses `cardroom` (themes.css). `slate` is the scaffold's base token
+ * set in styles.css, which every theme overrides. To add a theme:
  *   1. Add a `[data-theme="my-id"] { ... }` block in src/themes.css with
  *      the shadcn token overrides (include `color-scheme: light;` for
  *      light themes).
@@ -26,11 +24,6 @@ export const THEMES = [
     id: 'slate',
     label: 'Slate',
     description: 'Neutral dark placeholder default. Replace with your own theme.',
-  },
-  {
-    id: 'paper',
-    label: 'Paper',
-    description: 'Light example theme showing the token contract. Replace or delete.',
   },
 ] as const
 

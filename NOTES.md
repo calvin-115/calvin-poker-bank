@@ -181,6 +181,11 @@
 ### Pushed to GitHub (Claude Code)
 - Pushed `main` to `origin` (github.com/calvin-115/calvin-poker-bank), `ed0845d..5519ce5`: every change since the first deploy (redesigns, buy-in requests, landing page, miscount settling, private join codes, profiles, Venmo). Checked the new commits for secrets first; none found. Feature branches stay local since they're all merged into `main`.
 
+### Scaffold cleanup (Claude Code)
+- Removed scaffold leftovers the app doesn't use: the `/api-status` debug page (plus its two scaffold tests in `tests/collab.spec.ts`, its route type and the nav comment pointing to it) and the `paper` example theme (CSS block, catalog entry, first-paint line).
+- Kept on purpose, because the worker template wires them in: empty `src/cron.ts` / `src/jobs.ts` hooks, `src/integrations.ts` (billing config read by action routes), `src/products.ts` (empty payments config), and the agent-tools endpoint from `src/ai/` (lets AI agents use the app as a signed-in member, with that member's permissions). The in-app AI chat routes stay off: they only register when the AI chat schema is installed, and it isn't.
+- Files: `src/pages/(app)/(protected)/api-status.tsx` (deleted), `tests/collab.spec.ts`, `src/router.ts`, `src/nav.ts`, `src/themes.css`, `src/themes.ts`, `index.html`
+
 ## What I verified / changed
 
 ## Next steps
